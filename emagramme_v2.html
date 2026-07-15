@@ -139,6 +139,32 @@
             border-color: #343a40;
         }
 
+        /* Style du champ de saisie du thermique au sol */
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f8f9fa;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+        }
+
+        .input-group label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .input-group input {
+            width: 70px;
+            padding: 6px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-weight: bold;
+            text-align: center;
+        }
+
         .info-box {
             background: #fff8e1;
             border-left: 4px solid #ffb300;
@@ -159,7 +185,6 @@
         }
         .clear-btn:hover { background: #ffe3e3; }
 
-        /* Style du Pied de Page */
         .footer-copyright {
             margin-top: 30px;
             font-size: 0.8rem;
@@ -175,7 +200,7 @@
 <body>
 
     <h1>Simulateur d'Émagramme Pédagogique</h1>
-    <div class="subtitle">Entre Ciel et Terre - Module 4 et 5 - L'Emagramme</div>
+    <div class="subtitle">Module 4 & 5 - Double graduation Altitude (m) / Pression (hPa)</div>
 
     <div class="container">
         <!-- Panneau de commandes gauche -->
@@ -205,7 +230,16 @@
             </div>
 
             <div>
-                <div class="section-title">3. Mode Dessin (Clic Souris)</div>
+                <div class="section-title">3. Simulation Thermique Actif</div>
+                <div class="input-group">
+                    <label for="temp-sol">T° au sol :</label>
+                    <input type="number" id="temp-sol" value="25" min="-10" max="30" step="0.5" oninput="draw()">
+                    <span style="font-size:0.85rem; font-weight:bold;">°C</span>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">4. Mode Dessin (Clic Souris)</div>
                 <div class="radio-group">
                     <button class="radio-btn active" id="mode-state" onclick="setDrawMode('state')">Courbe d'État (Réel)</button>
                     <button class="radio-btn" id="mode-dew" onclick="setDrawMode('dew')">Point de Rosée</button>
@@ -216,8 +250,8 @@
             </div>
 
             <div class="info-box" id="info-pedago">
-                <strong>Mode Pédagogique :</strong><br>
-                Le graphique est initialement vierge pour vous permettre de dévoiler chaque couche l'une après l'autre durant vos explications.
+                <strong>Calculateur de Thermique :</strong><br>
+                Tracez une courbe d'État, puis modifiez la T° au sol. La courbe bleue continue s'élèvera automatiquement jusqu'au niveau d'arrêt !
             </div>
         </div>
 
@@ -227,7 +261,6 @@
         </div>
     </div>
 
-    <!-- Pied de page avec Copyright -->
     <footer class="footer-copyright">
         © Auteur Guillaume PLISSON - Juillet 2026
     </footer>
@@ -302,6 +335,96 @@
             draw();
         }
 
+        // Récupérer la température réelle de la courbe d'état dessinée à une altitude donnée
+        function getRealTempAtAlt(alt) {
+            if (stateCurve.length < 2) return null;
+            
+            // Si l'altitude demandée est hors du tracé utilisateur
+            if (alt < stateCurve[0].alt || alt > stateCurve[stateCurve.length - 1].alt) {
+                return null;
+            }
+
+            // Interpolation linéaire entre les deux points encadrants
+            for (let i = 0; i < stateCurve.length - 1; i++) {
+                let p1 = stateCurve[i];
+                let p2 = stateCurve[i + 1];
+                if (alt >= p1.alt && alt <= p2.alt) {
+                    let ratio = (alt - p1.alt) / (p2.alt - p1.alt);
+                    let t1 = getTempFromX(p1.x);
+                    let t2 = getTempFromX(p2.x);
+                    return t1 + ratio * (t2 - t1);
+                }
+            }
+            return null;
+        }
+
+        // Calcul et dessin de la courbe thermique adiabatique sèche active
+        function drawActiveThermic() {
+            let startTemp = parseFloat(document.getElementById('temp-sol').value);
+            if (isNaN(startTemp)) return;
+
+            let points = [];
+            let intersected = false;
+            let intersectionAlt = 0;
+            let intersectionTemp = 0;
+
+            // On monte pas à pas de 10 mètres
+            for (let alt = 0; alt <= maxAlt; alt += 10) {
+                let thermicTemp = startTemp - (alt / 100); // -1°C / 100m
+                
+                // Récupérer la température de l'environnement réel à cette hauteur
+                let realTemp = getRealTempAtAlt(alt);
+
+                if (realTemp !== null) {
+                    // Si le thermique devient plus froid que l'environnement réel -> Equilibre !
+                    if (thermicTemp <= realTemp) {
+                        intersected = true;
+                        intersectionAlt = alt;
+                        intersectionTemp = thermicTemp;
+                        points.push({ x: getX(thermicTemp), y: getY(alt) });
+                        break;
+                    }
+                }
+                points.push({ x: getX(thermicTemp), y: getY(alt) });
+            }
+
+            // Dessin de la courbe en bleu continu si on a des points
+            if (points.length > 0) {
+                ctx.strokeStyle = '#0052cc';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i].x, points[i].y);
+                }
+                ctx.stroke();
+
+                // Marqueur visuel de fin d'ascension
+                if (intersected) {
+                    let endX = getX(intersectionTemp);
+                    let endY = getY(intersectionAlt);
+
+                    ctx.fillStyle = '#d32f2f';
+                    ctx.beginPath();
+                    ctx.arc(endX, endY, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    // Etiquette d'information de blocage
+                    ctx.fillStyle = '#0052cc';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(` Sommet Ascendance : ${Math.round(intersectionAlt)} m (${intersectionTemp.toFixed(1)}°C)`, endX + 8, endY + 4);
+                } else if (stateCurve.length >= 2) {
+                    // Hors tracé courbe d'état
+                    let lastPt = points[points.length - 1];
+                    ctx.fillStyle = '#0052cc';
+                    ctx.font = 'italic bold 11px sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(` Thermique Actif (Sans blocage dessiné)`, lastPt.x + 8, lastPt.y + 4);
+                }
+            }
+        }
+
         // Dessin complet
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -311,8 +434,12 @@
             if (state.wet) drawWetAdiabats();
             if (state.axes) drawAxes();
             
+            // Dessin des tracés manuels
             drawUserCurve(stateCurve, '#e65c00', 3, 'Courbe d’État (Air Réel)');
-            drawUserCurve(dewCurve, '#007acc', 2.5, 'Point de Rosée (Humidité)', true);
+            drawUserCurve(dewCurve, '#70a1ff', 2, 'Point de Rosée (Humidité)', true);
+
+            // Dessin de l'ascendance dynamique calculée
+            drawActiveThermic();
         }
 
         function drawAxes() {
@@ -405,10 +532,10 @@
             }
         }
 
-        // Adiabatiques sèches (-1°C / 100m)
+        // Adiabatiques sèches de fond (-1°C / 100m)
         function drawDryAdiabats() {
-            ctx.strokeStyle = 'rgba(220, 53, 69, 0.35)';
-            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = 'rgba(220, 53, 69, 0.2)';
+            ctx.lineWidth = 1;
             for (let startT = minTemp - 10; startT <= maxTemp + 20; startT += 5) {
                 ctx.beginPath();
                 let started = false;
@@ -430,10 +557,10 @@
             }
         }
 
-        // Adiabatiques saturées (~ -0.6°C / 100m)
+        // Adiabatiques saturées de fond (~ -0.6°C / 100m)
         function drawWetAdiabats() {
-            ctx.strokeStyle = 'rgba(25, 135, 84, 0.3)';
-            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = 'rgba(25, 135, 84, 0.15)';
+            ctx.lineWidth = 1;
             ctx.setLineDash([4, 4]);
             
             for (let startT = minTemp - 10; startT <= maxTemp + 20; startT += 5) {
@@ -476,6 +603,7 @@
             let lastPt = points[points.length - 1];
             ctx.fillStyle = color;
             ctx.font = 'italic bold 11px sans-serif';
+            ctx.textAlign = 'left';
             ctx.fillText(label, lastPt.x + 10, lastPt.y - 5);
         }
 
@@ -521,7 +649,7 @@
             draw();
         }
 
-        // Lancement initial (Canvas vide par défaut)
+        // Lancement initial
         draw();
     </script>
 </body>
