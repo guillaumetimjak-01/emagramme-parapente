@@ -46,7 +46,7 @@
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-            max-width: 1150px;
+            max-width: 1300px;
             width: 100%;
         }
 
@@ -225,13 +225,13 @@
             border-top: 1px solid #e2e8f0;
             padding-top: 15px;
             width: 100%;
-            max-width: 1150px;
+            max-width: 1300px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Simulateur d'Émagramme Pédagogique</h1>
+    <h1>Simulateur d'Émagramme Pédagogique (Skew-T)</h1>
     <div class="subtitle">Entre Ciel et Terre - Module 4 et 5 - L'Emagramme</div>
 
     <div class="container">
@@ -241,10 +241,10 @@
                 <div class="section-title">1. Structure du Graphique</div>
                 <div class="btn-group">
                     <button class="toggle-btn" id="btn-axes" onclick="toggleElement('axes')">
-                        <span class="indicator"></span> Axes & Cadre (0-5000m / -10 à +30°C)
+                        <span class="indicator"></span> Axes & Cadre (0-5000m / -10 à +40°C)
                     </button>
                     <button class="toggle-btn" id="btn-grid" onclick="toggleElement('grid')">
-                        <span class="indicator"></span> Grille de référence (Alt, hPa & Temp)
+                        <span class="indicator"></span> Grille oblique (Alt, hPa & Temp)
                     </button>
                 </div>
             </div>
@@ -284,22 +284,20 @@
                 <div class="section-title">5. Simulation Thermique Actif</div>
                 <div class="input-group">
                     <label for="temp-sol">T° au sol :</label>
-                    <input type="number" id="temp-sol" placeholder="--" min="-10" max="30" step="0.5" oninput="draw()">
+                    <input type="number" id="temp-sol" placeholder="--" min="-10" max="40" step="0.5" oninput="draw()">
                     <span style="font-size:0.85rem; font-weight:bold;">°C</span>
                 </div>
             </div>
 
             <div class="info-box" id="info-pedago">
-                <strong>Calculateur de Thermique :</strong><br>
-                • Tracez les courbes d'État et de Point de Rosée (Étape 3).<br>
-                • Demandez aux élèves de repérer les altitudes de condensation.<br>
-                • Cochez « Afficher les Nuages » (Étape 4) : les zones saturées s'affichent de façon homogène en gris clair avec l'étiquette « Couche nuageuse ».
+                <strong>Format Skew-T :</strong><br>
+                Les isothermes sont inclinées de 30° vers la droite. Les calculs de refroidissement adiabatique de la bulle verte respectent cette inclinaison géométrique.
             </div>
         </div>
 
-        <!-- Zone Graphique Émagramme -->
+        <!-- Zone Graphique Émagramme Élargie -->
         <div class="graph-area">
-            <canvas id="emagramCanvas" width="750" height="550"></canvas>
+            <canvas id="emagramCanvas" width="900" height="600"></canvas>
         </div>
     </div>
 
@@ -311,13 +309,13 @@
         const canvas = document.getElementById('emagramCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Paramètres des axes requis
+        // Paramètres des axes requis (étendus de -10 à 40°C)
         const minTemp = -10;
-        const maxTemp = 30;
+        const maxTemp = 40;
         const minAlt = 0;
         const maxAlt = 5000;
 
-        // Marges adaptées pour accueillir la double échelle empilée
+        // Marges adaptées
         const paddingLeft = 85; 
         const paddingRight = 40;
         const paddingTop = 30;
@@ -326,12 +324,17 @@
         const graphWidth = canvas.width - paddingLeft - paddingRight;
         const graphHeight = canvas.height - paddingTop - paddingBottom;
 
+        // Constantes pour l'inclinaison des isothermes à 30°
+        // SKEW_FACTOR définit de combien de pixels vers la droite on décale l'isotherme par pixel vertical montant.
+        const SKEW_ANGLE_RAD = 30 * Math.PI / 180; 
+        const SKEW_FACTOR = Math.tan(SKEW_ANGLE_RAD); 
+
         // Table d'équivalence standard OACI
         function altToHpa(alt) {
             return Math.round(1013.25 * Math.pow((1 - 0.0000225577 * alt), 5.2559));
         }
 
-        // États d'affichage initiaux (Tout désactivé par défaut)
+        // États d'affichage initiaux
         let state = {
             axes: false,
             grid: false,
@@ -340,20 +343,35 @@
             drawMode: 'state'
         };
 
-        // Tableaux de points vides par défaut
         let stateCurve = [];
         let dewCurve = [];
 
-        // Conversion coordonnées réelles <=> Pixels
-        function getX(temp) {
-            return paddingLeft + ((temp - minTemp) / (maxTemp - minTemp)) * graphWidth;
+        /* ==========================================================
+           FONCTIONS DE TRANSFORMATION DE COORDONNÉES (SKEW-T)
+           - Le point de départ (alt = 0, au niveau du sol) n'est pas décalé.
+           - Plus on monte (Y diminue en coordonnées canvas), plus le point est décalé vers la droite.
+           ========================================================== */
+        function getX(temp, alt) {
+            // Position de base sur l'axe X si la grille était verticale
+            let xBase = paddingLeft + ((temp - minTemp) / (maxTemp - minTemp)) * graphWidth;
+            // Hauteur relative par rapport au bas du graphique (en pixels)
+            let hPixels = getY(0) - getY(alt);
+            // Décalage géométrique vers la droite induit par l'isotherme à 30°
+            return xBase + hPixels * SKEW_FACTOR;
         }
+
         function getY(alt) {
             return paddingTop + graphHeight - ((alt - minAlt) / (maxAlt - minAlt)) * graphHeight;
         }
-        function getTempFromX(x) {
-            return minTemp + ((x - paddingLeft) / graphWidth) * (maxTemp - minTemp);
+
+        // Récupérer la température réelle à partir des coordonnées pixels d'un clic/tracé (X, Y)
+        function getTempFromXY(pixelX, pixelY) {
+            let hPixels = getY(0) - pixelY;
+            // On soustrait le décalage horizontal pour retrouver la coordonnée de base
+            let xBase = pixelX - hPixels * SKEW_FACTOR;
+            return minTemp + ((xBase - paddingLeft) / graphWidth) * (maxTemp - minTemp);
         }
+
         function getAltFromY(y) {
             return minAlt + ((paddingTop + graphHeight - y) / graphHeight) * (maxAlt - minAlt);
         }
@@ -405,15 +423,15 @@
                 let p2 = curve[i + 1];
                 if (alt >= p1.alt && alt <= p2.alt) {
                     let ratio = (alt - p1.alt) / (p2.alt - p1.alt);
-                    let t1 = getTempFromX(p1.x);
-                    let t2 = getTempFromX(p2.x);
+                    let t1 = getTempFromXY(p1.x, p1.y);
+                    let t2 = getTempFromXY(p2.x, p2.y);
                     return t1 + ratio * (t2 - t1);
                 }
             }
             return null;
         }
 
-        // Identifier et dessiner les zones saturées en gris clair uniforme
+        // Dessiner la bande de nuage
         function drawCondensationZone() {
             const showClouds = document.getElementById('show-clouds').checked;
             if (!showClouds || stateCurve.length < 2 || dewCurve.length < 2) return;
@@ -421,7 +439,6 @@
             let inCloud = false;
             let cloudStartAlt = 0;
 
-            // On scanne l'altitude de 10 m en 10 m
             for (let alt = 0; alt <= maxAlt; alt += 10) {
                 let tReal = getTempAtAlt(stateCurve, alt);
                 let tDew = getTempAtAlt(dewCurve, alt);
@@ -452,27 +469,25 @@
             }
         }
 
-        // Dessine une tranche de nuage uniforme gris clair
         function drawCloudSlice(startAlt, endAlt) {
-            let yStart = getY(startAlt); // Bas du nuage
-            let yEnd = getY(endAlt);     // Haut du nuage
+            let yStart = getY(startAlt);
+            let yEnd = getY(endAlt);
             let sliceHeight = yStart - yEnd;
 
-            let cloudWidth = graphWidth * 0.4; // Bande sur la droite
+            // Dessin sur le côté droit pour ne pas encombrer le graphique oblique
+            let cloudWidth = graphWidth * 0.35; 
             let startX = paddingLeft + graphWidth - cloudWidth;
 
-            // Couleur uniforme gris clair translucide pour toute la zone
             ctx.fillStyle = 'rgba(215, 220, 225, 0.6)';
             ctx.fillRect(startX, yEnd, cloudWidth, sliceHeight);
 
-            // Légende "Couche nuageuse"
             ctx.fillStyle = '#2c3e50';
             ctx.font = 'italic bold 10px sans-serif';
             ctx.textAlign = 'right';
             ctx.fillText("Couche nuageuse", paddingLeft + graphWidth - 10, yStart - 10);
         }
 
-        // Calcul et dessin de la courbe de la bulle thermique (en vert)
+        // Calcul et dessin de la courbe de la bulle thermique en vert (intégrant le décalage oblique)
         function drawActiveThermic() {
             let startTempRaw = document.getElementById('temp-sol').value;
             if (startTempRaw === "") return;
@@ -494,11 +509,11 @@
                         intersected = true;
                         intersectionAlt = alt;
                         intersectionTemp = thermicTemp;
-                        points.push({ x: getX(thermicTemp), y: getY(alt) });
+                        points.push({ x: getX(thermicTemp, alt), y: getY(alt) });
                         break;
                     }
                 }
-                points.push({ x: getX(thermicTemp), y: getY(alt) });
+                points.push({ x: getX(thermicTemp, alt), y: getY(alt) });
             }
 
             if (points.length > 0) {
@@ -512,7 +527,7 @@
                 ctx.stroke();
 
                 if (intersected) {
-                    let endX = getX(intersectionTemp);
+                    let endX = getX(intersectionTemp, intersectionAlt);
                     let endY = getY(intersectionAlt);
 
                     ctx.fillStyle = '#d32f2f';
@@ -529,7 +544,7 @@
                     ctx.fillStyle = '#27ae60';
                     ctx.font = 'italic bold 11px sans-serif';
                     ctx.textAlign = 'left';
-                    ctx.fillText(` Bulle Thermique (Pas de blocage dessiné)`, lastPt.x + 8, lastPt.y + 4);
+                    ctx.fillText(` Bulle Thermique`, lastPt.x + 8, lastPt.y + 4);
                 }
             }
         }
@@ -538,20 +553,27 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // Masquer les tracés utilisateur hors du cadre du graphique
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(paddingLeft, paddingTop, graphWidth, graphHeight);
+            ctx.clip();
+
             if (state.grid) drawGrid();
             if (state.dry) drawDryAdiabats();
             if (state.wet) drawWetAdiabats();
-            if (state.axes) drawAxes();
             
-            // Dessine d'abord la zone de condensation (arrière-plan des tracés)
             drawCondensationZone();
 
-            // Tracés manuels
+            // Tracés utilisateurs
             drawUserCurve(stateCurve, '#e65c00', 3, 'Courbe d’État (Air Réel)');
             drawUserCurve(dewCurve, '#007acc', 2, 'Point de Rosée (Humidité)', true);
 
-            // Courbe d'ascendance verte
             drawActiveThermic();
+
+            ctx.restore();
+
+            if (state.axes) drawAxes();
         }
 
         function drawAxes() {
@@ -584,10 +606,10 @@
         }
 
         function drawGrid() {
-            ctx.strokeStyle = '#e2e8f0';
             ctx.lineWidth = 1;
             ctx.font = '10px sans-serif';
 
+            // 1. Lignes horizontales d'altitudes (tous les 500m)
             for (let alt = minAlt; alt <= maxAlt; alt += 500) {
                 let y = getY(alt);
                 let hpa = altToHpa(alt);
@@ -617,32 +639,37 @@
                 }
             }
 
+            // 2. Isothermes inclinées à 30° (tous les 5°C)
             ctx.textAlign = 'center';
-            for (let t = minTemp; t <= maxTemp; t += 5) {
-                let x = getX(t);
+            for (let t = minTemp - 20; t <= maxTemp + 20; t += 5) {
+                let xStart = getX(t, 0);
+                let xEnd = getX(t, maxAlt);
+
                 ctx.strokeStyle = '#e2e8f0';
                 ctx.beginPath();
-                ctx.moveTo(x, paddingTop);
-                ctx.lineTo(x, paddingTop + graphHeight);
+                ctx.moveTo(xStart, getY(0));
+                ctx.lineTo(xEnd, getY(maxAlt));
                 ctx.stroke();
 
-                if (state.axes) {
+                // Affichage de la température au sol (base de l'axe)
+                if (state.axes && t >= minTemp && t <= maxTemp) {
                     ctx.fillStyle = '#2c3e50';
                     ctx.font = 'normal 10px sans-serif';
-                    ctx.fillText(t + "°", x, paddingTop + graphHeight + 18);
+                    ctx.fillText(t + "°", xStart, paddingTop + graphHeight + 18);
                 }
             }
         }
 
+        // Adiabatiques sèches obliques (-1°C / 100m)
         function drawDryAdiabats() {
             ctx.strokeStyle = 'rgba(220, 53, 69, 0.2)';
             ctx.lineWidth = 1;
-            for (let startT = minTemp - 10; startT <= maxTemp + 20; startT += 5) {
+            for (let startT = minTemp - 20; startT <= maxTemp + 30; startT += 5) {
                 ctx.beginPath();
                 let started = false;
                 for (let alt = 0; alt <= maxAlt; alt += 200) {
                     let currentT = startT - (alt / 100);
-                    let x = getX(currentT);
+                    let x = getX(currentT, alt);
                     let y = getY(alt);
 
                     if (x >= paddingLeft && x <= paddingLeft + graphWidth) {
@@ -658,18 +685,19 @@
             }
         }
 
+        // Adiabatiques saturées obliques (~ -0.6°C / 100m)
         function drawWetAdiabats() {
             ctx.strokeStyle = 'rgba(25, 135, 84, 0.15)';
             ctx.lineWidth = 1;
             ctx.setLineDash([4, 4]);
             
-            for (let startT = minTemp - 10; startT <= maxTemp + 20; startT += 5) {
+            for (let startT = minTemp - 20; startT <= maxTemp + 30; startT += 5) {
                 ctx.beginPath();
                 let started = false;
                 for (let alt = 0; alt <= maxAlt; alt += 200) {
                     let lapseRate = 0.55 + (alt / 20000); 
                     let currentT = startT - (alt / 100) * lapseRate;
-                    let x = getX(currentT);
+                    let x = getX(currentT, alt);
                     let y = getY(alt);
 
                     if (x >= paddingLeft && x <= paddingLeft + graphWidth) {
