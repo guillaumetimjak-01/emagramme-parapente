@@ -139,7 +139,7 @@
             border-color: #343a40;
         }
 
-        /* Style du champ de saisie du thermique au sol */
+        /* Style du champ de saisie */
         .input-group {
             display: flex;
             align-items: center;
@@ -230,16 +230,7 @@
             </div>
 
             <div>
-                <div class="section-title">3. Simulation Thermique Actif</div>
-                <div class="input-group">
-                    <label for="temp-sol">T° au sol :</label>
-                    <input type="number" id="temp-sol" value="25" min="-10" max="30" step="0.5" oninput="draw()">
-                    <span style="font-size:0.85rem; font-weight:bold;">°C</span>
-                </div>
-            </div>
-
-            <div>
-                <div class="section-title">4. Mode Dessin (Clic Souris)</div>
+                <div class="section-title">3. Mode Dessin (Clic Souris)</div>
                 <div class="radio-group">
                     <button class="radio-btn active" id="mode-state" onclick="setDrawMode('state')">Courbe d'État (Réel)</button>
                     <button class="radio-btn" id="mode-dew" onclick="setDrawMode('dew')">Point de Rosée</button>
@@ -249,9 +240,18 @@
                 </div>
             </div>
 
+            <div>
+                <div class="section-title">4. Simulation Thermique Actif</div>
+                <div class="input-group">
+                    <label for="temp-sol">T° au sol :</label>
+                    <input type="number" id="temp-sol" placeholder="--" min="-10" max="30" step="0.5" oninput="draw()">
+                    <span style="font-size:0.85rem; font-weight:bold;">°C</span>
+                </div>
+            </div>
+
             <div class="info-box" id="info-pedago">
                 <strong>Calculateur de Thermique :</strong><br>
-                Tracez une courbe d'État, puis modifiez la T° au sol. La courbe bleue continue s'élèvera automatiquement jusqu'au niveau d'arrêt !
+                Tracez une courbe d'État à l'étape 3, puis saisissez une T° au sol à l'étape 4. La courbe bleue continue s'élèvera automatiquement jusqu'au niveau d'arrêt !
             </div>
         </div>
 
@@ -332,6 +332,7 @@
         function clearCurves() {
             stateCurve = [];
             dewCurve = [];
+            document.getElementById('temp-sol').value = "";
             draw();
         }
 
@@ -339,12 +340,10 @@
         function getRealTempAtAlt(alt) {
             if (stateCurve.length < 2) return null;
             
-            // Si l'altitude demandée est hors du tracé utilisateur
             if (alt < stateCurve[0].alt || alt > stateCurve[stateCurve.length - 1].alt) {
                 return null;
             }
 
-            // Interpolation linéaire entre les deux points encadrants
             for (let i = 0; i < stateCurve.length - 1; i++) {
                 let p1 = stateCurve[i];
                 let p2 = stateCurve[i + 1];
@@ -358,9 +357,12 @@
             return null;
         }
 
-        // Calcul et dessin de la courbe thermique adiabatique sèche active
+        // Calcul et dessin de la courbe thermique active
         function drawActiveThermic() {
-            let startTemp = parseFloat(document.getElementById('temp-sol').value);
+            let startTempRaw = document.getElementById('temp-sol').value;
+            if (startTempRaw === "") return;
+
+            let startTemp = parseFloat(startTempRaw);
             if (isNaN(startTemp)) return;
 
             let points = [];
@@ -368,15 +370,11 @@
             let intersectionAlt = 0;
             let intersectionTemp = 0;
 
-            // On monte pas à pas de 10 mètres
             for (let alt = 0; alt <= maxAlt; alt += 10) {
-                let thermicTemp = startTemp - (alt / 100); // -1°C / 100m
-                
-                // Récupérer la température de l'environnement réel à cette hauteur
+                let thermicTemp = startTemp - (alt / 100); 
                 let realTemp = getRealTempAtAlt(alt);
 
                 if (realTemp !== null) {
-                    // Si le thermique devient plus froid que l'environnement réel -> Equilibre !
                     if (thermicTemp <= realTemp) {
                         intersected = true;
                         intersectionAlt = alt;
@@ -388,7 +386,6 @@
                 points.push({ x: getX(thermicTemp), y: getY(alt) });
             }
 
-            // Dessin de la courbe en bleu continu si on a des points
             if (points.length > 0) {
                 ctx.strokeStyle = '#0052cc';
                 ctx.lineWidth = 3;
@@ -399,7 +396,6 @@
                 }
                 ctx.stroke();
 
-                // Marqueur visuel de fin d'ascension
                 if (intersected) {
                     let endX = getX(intersectionTemp);
                     let endY = getY(intersectionAlt);
@@ -409,13 +405,11 @@
                     ctx.arc(endX, endY, 6, 0, 2 * Math.PI);
                     ctx.fill();
 
-                    // Etiquette d'information de blocage
                     ctx.fillStyle = '#0052cc';
                     ctx.font = 'bold 11px sans-serif';
                     ctx.textAlign = 'left';
                     ctx.fillText(` Sommet Ascendance : ${Math.round(intersectionAlt)} m (${intersectionTemp.toFixed(1)}°C)`, endX + 8, endY + 4);
                 } else if (stateCurve.length >= 2) {
-                    // Hors tracé courbe d'état
                     let lastPt = points[points.length - 1];
                     ctx.fillStyle = '#0052cc';
                     ctx.font = 'italic bold 11px sans-serif';
@@ -434,11 +428,9 @@
             if (state.wet) drawWetAdiabats();
             if (state.axes) drawAxes();
             
-            // Dessin des tracés manuels
             drawUserCurve(stateCurve, '#e65c00', 3, 'Courbe d’État (Air Réel)');
             drawUserCurve(dewCurve, '#70a1ff', 2, 'Point de Rosée (Humidité)', true);
 
-            // Dessin de l'ascendance dynamique calculée
             drawActiveThermic();
         }
 
@@ -448,19 +440,16 @@
             ctx.fillStyle = '#2c3e50';
             ctx.font = '12px sans-serif';
 
-            // Axe vertical principal (Y)
             ctx.beginPath();
             ctx.moveTo(paddingLeft, paddingTop);
             ctx.lineTo(paddingLeft, paddingTop + graphHeight);
             ctx.stroke();
 
-            // Axe horizontal (X)
             ctx.beginPath();
             ctx.moveTo(paddingLeft, paddingTop + graphHeight);
             ctx.lineTo(paddingLeft + graphWidth, paddingTop + graphHeight);
             ctx.stroke();
 
-            // Titre de l'axe vertical à gauche
             ctx.save();
             ctx.translate(20, paddingTop + graphHeight/2);
             ctx.rotate(-Math.PI / 2);
@@ -469,7 +458,6 @@
             ctx.fillText("Altitude (m) / Pression (hPa)", 0, 0);
             ctx.restore();
 
-            // Titre de l'axe horizontal
             ctx.textAlign = 'center';
             ctx.font = 'bold 12px sans-serif';
             ctx.fillText("Température (°C)", paddingLeft + graphWidth/2, paddingTop + graphHeight + 40);
@@ -480,12 +468,10 @@
             ctx.lineWidth = 1;
             ctx.font = '10px sans-serif';
 
-            // Lignes d'altitudes et pressions associées (tous les 500m)
             for (let alt = minAlt; alt <= maxAlt; alt += 500) {
                 let y = getY(alt);
                 let hpa = altToHpa(alt);
 
-                // Ligne horizontale de la grille
                 ctx.strokeStyle = '#e2e8f0';
                 ctx.beginPath();
                 ctx.moveTo(paddingLeft, y);
@@ -493,7 +479,6 @@
                 ctx.stroke();
 
                 if (state.axes) {
-                    // Petits traits de graduation sur l'axe principal
                     ctx.strokeStyle = '#2c3e50';
                     ctx.beginPath();
                     ctx.moveTo(paddingLeft - 5, y);
@@ -502,19 +487,16 @@
 
                     ctx.textAlign = 'right';
 
-                    // 1. Altitude en GRAS (placée légèrement au-dessus de la ligne)
                     ctx.fillStyle = '#2c3e50';
                     ctx.font = 'bold 11px sans-serif';
                     ctx.fillText(alt + " m", paddingLeft - 10, y - 2);
 
-                    // 2. Pression en dessous (placée légèrement en dessous de la ligne)
                     ctx.fillStyle = '#7f8c8d';
                     ctx.font = 'normal 9.5px sans-serif';
                     ctx.fillText(hpa + " hPa", paddingLeft - 10, y + 10);
                 }
             }
 
-            // Lignes de températures (tous les 5°C)
             ctx.textAlign = 'center';
             for (let t = minTemp; t <= maxTemp; t += 5) {
                 let x = getX(t);
@@ -532,7 +514,6 @@
             }
         }
 
-        // Adiabatiques sèches de fond (-1°C / 100m)
         function drawDryAdiabats() {
             ctx.strokeStyle = 'rgba(220, 53, 69, 0.2)';
             ctx.lineWidth = 1;
@@ -557,7 +538,6 @@
             }
         }
 
-        // Adiabatiques saturées de fond (~ -0.6°C / 100m)
         function drawWetAdiabats() {
             ctx.strokeStyle = 'rgba(25, 135, 84, 0.15)';
             ctx.lineWidth = 1;
@@ -607,7 +587,6 @@
             ctx.fillText(label, lastPt.x + 10, lastPt.y - 5);
         }
 
-        // Gestion du dessin à la souris
         let isDrawing = false;
 
         canvas.addEventListener('mousedown', (e) => {
@@ -641,7 +620,7 @@
             
             targetArray = targetArray.filter(p => Math.abs(p.y - y) > 6);
             targetArray.push(newPoint);
-            targetArray.sort((a, b) => b.y - a.y); // Ordonné du sol vers le haut
+            targetArray.sort((a, b) => b.y - a.y);
 
             if (state.drawMode === 'state') stateCurve = targetArray;
             else dewCurve = targetArray;
@@ -649,7 +628,6 @@
             draw();
         }
 
-        // Lancement initial
         draw();
     </script>
 </body>
