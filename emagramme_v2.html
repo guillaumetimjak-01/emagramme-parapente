@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulateur Émagramme Pédagogique - Vol Libre</title>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --panel-bg: #ffffff;
+            --text-color: #212529;
+            --primary-color: #0d6efd;
+            --dry-color: #dc3545;
+            --wet-color: #198754;
+            --state-color: #e65c00;
+            --dew-color: #007acc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+            color: #1a252f;
+            font-size: 1.8rem;
+        }
+
+        .subtitle {
+            margin-bottom: 20px;
+            color: #6c757d;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            max-width: 1150px;
+            width: 100%;
+        }
+
+        .control-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 280px;
+        }
+
+        .graph-area {
+            position: relative;
+            background: #ffffff;
+            border: 2px solid #cfd8dc;
+            border-radius: 8px;
+            cursor: crosshair;
+        }
+
+        .section-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 8px;
+            border-bottom: 2px solid #edf2f7;
+            padding-bottom: 4px;
+            color: #34495e;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: #f1f3f5;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-btn:hover {
+            background: #e9ecef;
+        }
+
+        .toggle-btn.active {
+            background: #e7f1ff;
+            border-color: #b6d4fe;
+            font-weight: 500;
+        }
+
+        .toggle-btn .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #dee2e6;
+            display: inline-block;
+        }
+
+        .toggle-btn.active .indicator {
+            background: var(--primary-color);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .radio-btn {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            background: #f1f3f5;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .radio-btn.active {
+            background: #343a40;
+            color: #fff;
+            border-color: #343a40;
+        }
+
+        .info-box {
+            background: #fff8e1;
+            border-left: 4px solid #ffb300;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .clear-btn {
+            padding: 8px;
+            background: #fff0f1;
+            border: 1px solid #ffa8a8;
+            color: #e03131;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .clear-btn:hover { background: #ffe3e3; }
+    </style>
+</head>
+<body>
+
+    <h1>Simulateur d'Émagramme Pédagogique</h1>
+    <div class="subtitle">Module 4 & 5 - Double graduation Altitude (m) / Pression (hPa)</div>
+
+    <div class="container">
+        <!-- Panneau de commandes gauche -->
+        <div class="control-panel">
+            <div>
+                <div class="section-title">1. Structure du Graphique</div>
+                <div class="btn-group">
+                    <button class="toggle-btn" id="btn-axes" onclick="toggleElement('axes')">
+                        <span class="indicator"></span> Axes & Cadre (0-5000m / -10 à +30°C)
+                    </button>
+                    <button class="toggle-btn" id="btn-grid" onclick="toggleElement('grid')">
+                        <span class="indicator"></span> Grille de référence (Alt, hPa & Temp)
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">2. Constantes Physiques</div>
+                <div class="btn-group">
+                    <button class="toggle-btn" id="btn-dry" onclick="toggleElement('dry')">
+                        <span class="indicator"></span> Adiabatiques Sèches (-1°C / 100m)
+                    </button>
+                    <button class="toggle-btn" id="btn-wet" onclick="toggleElement('wet')">
+                        <span class="indicator"></span> Adiabatiques Saturées (~ -0.6°C / 100m)
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">3. Mode Dessin (Clic Souris)</div>
+                <div class="radio-group">
+                    <button class="radio-btn active" id="mode-state" onclick="setDrawMode('state')">Courbe d'État (Réel)</button>
+                    <button class="radio-btn" id="mode-dew" onclick="setDrawMode('dew')">Point de Rosée</button>
+                </div>
+                <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 5px;">
+                    <button class="clear-btn" onclick="clearCurves()">Effacer les tracés</button>
+                </div>
+            </div>
+
+            <div class="info-box" id="info-pedago">
+                <strong>Mode Pédagogique :</strong><br>
+                Le graphique est initialement vierge pour vous permettre de dévoiler chaque couche l'une après l'autre durant vos explications.
+            </div>
+        </div>
+
+        <!-- Zone Graphique Émagramme -->
+        <div class="graph-area">
+            <canvas id="emagramCanvas" width="750" height="550"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('emagramCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Paramètres des axes requis
+        const minTemp = -10;
+        const maxTemp = 30;
+        const minAlt = 0;
+        const maxAlt = 5000;
+
+        // Marges adaptées pour accueillir la double échelle empilée
+        const paddingLeft = 85; 
+        const paddingRight = 40;
+        const paddingTop = 30;
+        const paddingBottom = 50;
+
+        const graphWidth = canvas.width - paddingLeft - paddingRight;
+        const graphHeight = canvas.height - paddingTop - paddingBottom;
+
+        // Table d'équivalence standard OACI
+        function altToHpa(alt) {
+            return Math.round(1013.25 * Math.pow((1 - 0.0000225577 * alt), 5.2559));
+        }
+
+        // États d'affichage initiaux (Tout désactivé par défaut)
+        let state = {
+            axes: false,
+            grid: false,
+            dry: false,
+            wet: false,
+            drawMode: 'state'
+        };
+
+        // Tableaux de points vides par défaut
+        let stateCurve = [];
+        let dewCurve = [];
+
+        // Conversion coordonnées réelles <=> Pixels
+        function getX(temp) {
+            return paddingLeft + ((temp - minTemp) / (maxTemp - minTemp)) * graphWidth;
+        }
+        function getY(alt) {
+            return paddingTop + graphHeight - ((alt - minAlt) / (maxAlt - minAlt)) * graphHeight;
+        }
+        function getTempFromX(x) {
+            return minTemp + ((x - paddingLeft) / graphWidth) * (maxTemp - minTemp);
+        }
+        function getAltFromY(y) {
+            return minAlt + ((paddingTop + graphHeight - y) / graphHeight) * (maxAlt - minAlt);
+        }
+
+        // Fonctions d'interaction
+        function toggleElement(element) {
+            state[element] = !state[element];
+            document.getElementById(`btn-${element}`).classList.toggle('active', state[element]);
+            draw();
+        }
+
+        function setDrawMode(mode) {
+            state.drawMode = mode;
+            document.getElementById('mode-state').classList.toggle('active', mode === 'state');
+            document.getElementById('mode-dew').classList.toggle('active', mode === 'dew');
+        }
+
+        function clearCurves() {
+            stateCurve = [];
+            dewCurve = [];
+            draw();
+        }
+
+        // Dessin complet
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (state.grid) drawGrid();
+            if (state.dry) drawDryAdiabats();
+            if (state.wet) drawWetAdiabats();
+            if (state.axes) drawAxes();
+            
+            drawUserCurve(stateCurve, '#e65c00', 3, 'Courbe d’État (Air Réel)');
+            drawUserCurve(dewCurve, '#007acc', 2.5, 'Point de Rosée (Humidité)', true);
+        }
+
+        function drawAxes() {
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = '12px sans-serif';
+
+            // Axe vertical principal (Y)
+            ctx.beginPath();
+            ctx.moveTo(paddingLeft, paddingTop);
+            ctx.lineTo(paddingLeft, paddingTop + graphHeight);
+            ctx.stroke();
+
+            // Axe horizontal (X)
+            ctx.beginPath();
+            ctx.moveTo(paddingLeft, paddingTop + graphHeight);
+            ctx.lineTo(paddingLeft + graphWidth, paddingTop + graphHeight);
+            ctx.stroke();
+
+            // Titre de l'axe vertical à gauche
+            ctx.save();
+            ctx.translate(20, paddingTop + graphHeight/2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText("Altitude (m) / Pression (hPa)", 0, 0);
+            ctx.restore();
+
+            // Titre de l'axe horizontal
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText("Température (°C)", paddingLeft + graphWidth/2, paddingTop + graphHeight + 40);
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            ctx.font = '10px sans-serif';
+
+            // Lignes d'altitudes et pressions associées (tous les 500m)
+            for (let alt = minAlt; alt <= maxAlt; alt += 500) {
+                let y = getY(alt);
+                let hpa = altToHpa(alt);
+
+                // Ligne horizontale de la grille
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.beginPath();
+                ctx.moveTo(paddingLeft, y);
+                ctx.lineTo(paddingLeft + graphWidth, y);
+                ctx.stroke();
+
+                if (state.axes) {
+                    // Petits traits de graduation sur l'axe principal
+                    ctx.strokeStyle = '#2c3e50';
+                    ctx.beginPath();
+                    ctx.moveTo(paddingLeft - 5, y);
+                    ctx.lineTo(paddingLeft + 5, y);
+                    ctx.stroke();
+
+                    ctx.textAlign = 'right';
+
+                    // 1. Altitude en GRAS (placée légèrement au-dessus de la ligne)
+                    ctx.fillStyle = '#2c3e50';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.fillText(alt + " m", paddingLeft - 10, y - 2);
+
+                    // 2. Pression en dessous (placée légèrement en dessous de la ligne)
+                    ctx.fillStyle = '#7f8c8d';
+                    ctx.font = 'normal 9.5px sans-serif';
+                    ctx.fillText(hpa + " hPa", paddingLeft - 10, y + 10);
+                }
+            }
+
+            // Lignes de températures (tous les 5°C)
+            ctx.textAlign = 'center';
+            for (let t = minTemp; t <= maxTemp; t += 5) {
+                let x = getX(t);
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.beginPath();
+                ctx.moveTo(x, paddingTop);
+                ctx.lineTo(x, paddingTop + graphHeight);
+                ctx.stroke();
+
+                if (state.axes) {
+                    ctx.fillStyle = '#2c3e50';
+                    ctx.font = 'normal 10px sans-serif';
+                    ctx.fillText(t + "°", x, paddingTop + graphHeight + 18);
+                }
+            }
+        }
+
+        // Adiabatiques sèches (-1°C / 100m)
+        function drawDryAdiabats() {
+            ctx.strokeStyle = 'rgba(220, 53, 69, 0.35)';
+            ctx.lineWidth = 1.5;
+            for (let startT = minTemp - 10; startT <= maxTemp + 20; startT += 5) {
+                ctx.beginPath();
+                let started = false;
+                for (let alt = 0; alt <= maxAlt; alt += 200) {
+                    let currentT = startT - (alt / 100);
+                    let x = getX(currentT);
+                    let y = getY(alt);
+
+                    if (x >= paddingLeft && x <= paddingLeft + graphWidth) {
+                        if (!started) {
+                            ctx.moveTo(x, y);
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+                ctx.stroke();
+            }
+        }
+
+        // Adiabatiques saturées (~ -0.6°C / 100m)
+        function drawWetAdiabats() {
+            ctx.strokeStyle = 'rgba(25, 135, 84, 0.3)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            
+            for (let startT = minTemp - 10; startT <= maxTemp + 20; startT += 5) {
+                ctx.beginPath();
+                let started = false;
+                for (let alt = 0; alt <= maxAlt; alt += 200) {
+                    let lapseRate = 0.55 + (alt / 20000); 
+                    let currentT = startT - (alt / 100) * lapseRate;
+                    let x = getX(currentT);
+                    let y = getY(alt);
+
+                    if (x >= paddingLeft && x <= paddingLeft + graphWidth) {
+                        if (!started) {
+                            ctx.moveTo(x, y);
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+        }
+
+        function drawUserCurve(points, color, width, label, isDash = false) {
+            if (points.length < 2) return;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            if(isDash) ctx.setLineDash([5, 3]);
+
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            let lastPt = points[points.length - 1];
+            ctx.fillStyle = color;
+            ctx.font = 'italic bold 11px sans-serif';
+            ctx.fillText(label, lastPt.x + 10, lastPt.y - 5);
+        }
+
+        // Gestion du dessin à la souris
+        let isDrawing = false;
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (x >= paddingLeft && x <= paddingLeft + graphWidth && y >= paddingTop && y <= paddingTop + graphHeight) {
+                isDrawing = true;
+                addPoint(x, y);
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (x >= paddingLeft && x <= paddingLeft + graphWidth && y >= paddingTop && y <= paddingTop + graphHeight) {
+                addPoint(x, y);
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mouseleave', () => isDrawing = false);
+
+        function addPoint(x, y) {
+            let targetArray = state.drawMode === 'state' ? stateCurve : dewCurve;
+            let newPoint = { x: x, y: y, alt: getAltFromY(y) };
+            
+            targetArray = targetArray.filter(p => Math.abs(p.y - y) > 6);
+            targetArray.push(newPoint);
+            targetArray.sort((a, b) => b.y - a.y); // Ordonné du sol vers le haut
+
+            if (state.drawMode === 'state') stateCurve = targetArray;
+            else dewCurve = targetArray;
+
+            draw();
+        }
+
+        // Lancement initial (Canvas vide par défaut)
+        draw();
+    </script>
+</body>
+</html>
