@@ -291,7 +291,7 @@
 
             <div class="info-box" id="info-pedago">
                 <strong>Format Skew-T :</strong><br>
-                Les isothermes sont inclinées de 30° vers la droite. Les calculs de refroidissement adiabatique de la bulle verte respectent cette inclinaison géométrique.
+                Les isothermes sont inclinées de 30° vers la droite. Les calculs de refroidissement de la bulle verte respectent cette géométrie.
             </div>
         </div>
 
@@ -309,23 +309,22 @@
         const canvas = document.getElementById('emagramCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Paramètres des axes requis (étendus de -10 à 40°C)
+        // Paramètres des axes requis
         const minTemp = -10;
         const maxTemp = 40;
         const minAlt = 0;
         const maxAlt = 5000;
 
-        // Marges adaptées
-        const paddingLeft = 85; 
+        // Marges adaptées (paddingLeft augmenté pour accueillir la double graduation verticale)
+        const paddingLeft = 90; 
         const paddingRight = 40;
         const paddingTop = 30;
-        const paddingBottom = 50;
+        const paddingBottom = 55;
 
         const graphWidth = canvas.width - paddingLeft - paddingRight;
         const graphHeight = canvas.height - paddingTop - paddingBottom;
 
-        // Constantes pour l'inclinaison des isothermes à 30°
-        // SKEW_FACTOR définit de combien de pixels vers la droite on décale l'isotherme par pixel vertical montant.
+        // Constantes pour l'inclinaison à 30°
         const SKEW_ANGLE_RAD = 30 * Math.PI / 180; 
         const SKEW_FACTOR = Math.tan(SKEW_ANGLE_RAD); 
 
@@ -346,17 +345,10 @@
         let stateCurve = [];
         let dewCurve = [];
 
-        /* ==========================================================
-           FONCTIONS DE TRANSFORMATION DE COORDONNÉES (SKEW-T)
-           - Le point de départ (alt = 0, au niveau du sol) n'est pas décalé.
-           - Plus on monte (Y diminue en coordonnées canvas), plus le point est décalé vers la droite.
-           ========================================================== */
+        // Transformation de coordonnées (Skew-T)
         function getX(temp, alt) {
-            // Position de base sur l'axe X si la grille était verticale
             let xBase = paddingLeft + ((temp - minTemp) / (maxTemp - minTemp)) * graphWidth;
-            // Hauteur relative par rapport au bas du graphique (en pixels)
             let hPixels = getY(0) - getY(alt);
-            // Décalage géométrique vers la droite induit par l'isotherme à 30°
             return xBase + hPixels * SKEW_FACTOR;
         }
 
@@ -364,10 +356,8 @@
             return paddingTop + graphHeight - ((alt - minAlt) / (maxAlt - minAlt)) * graphHeight;
         }
 
-        // Récupérer la température réelle à partir des coordonnées pixels d'un clic/tracé (X, Y)
         function getTempFromXY(pixelX, pixelY) {
             let hPixels = getY(0) - pixelY;
-            // On soustrait le décalage horizontal pour retrouver la coordonnée de base
             let xBase = pixelX - hPixels * SKEW_FACTOR;
             return minTemp + ((xBase - paddingLeft) / graphWidth) * (maxTemp - minTemp);
         }
@@ -474,7 +464,6 @@
             let yEnd = getY(endAlt);
             let sliceHeight = yStart - yEnd;
 
-            // Dessin sur le côté droit pour ne pas encombrer le graphique oblique
             let cloudWidth = graphWidth * 0.35; 
             let startX = paddingLeft + graphWidth - cloudWidth;
 
@@ -487,7 +476,7 @@
             ctx.fillText("Couche nuageuse", paddingLeft + graphWidth - 10, yStart - 10);
         }
 
-        // Calcul et dessin de la courbe de la bulle thermique en vert (intégrant le décalage oblique)
+        // Calcul et dessin de la courbe de la bulle thermique en vert
         function drawActiveThermic() {
             let startTempRaw = document.getElementById('temp-sol').value;
             if (startTempRaw === "") return;
@@ -553,7 +542,7 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Masquer les tracés utilisateur hors du cadre du graphique
+            // Masquer les tracés utilisateur hors du cadre de dessin
             ctx.save();
             ctx.beginPath();
             ctx.rect(paddingLeft, paddingTop, graphWidth, graphHeight);
@@ -565,7 +554,6 @@
             
             drawCondensationZone();
 
-            // Tracés utilisateurs
             drawUserCurve(stateCurve, '#e65c00', 3, 'Courbe d’État (Air Réel)');
             drawUserCurve(dewCurve, '#007acc', 2, 'Point de Rosée (Humidité)', true);
 
@@ -582,16 +570,19 @@
             ctx.fillStyle = '#2c3e50';
             ctx.font = '12px sans-serif';
 
+            // Axe vertical principal (Y)
             ctx.beginPath();
             ctx.moveTo(paddingLeft, paddingTop);
             ctx.lineTo(paddingLeft, paddingTop + graphHeight);
             ctx.stroke();
 
+            // Axe horizontal (X)
             ctx.beginPath();
             ctx.moveTo(paddingLeft, paddingTop + graphHeight);
             ctx.lineTo(paddingLeft + graphWidth, paddingTop + graphHeight);
             ctx.stroke();
 
+            // Titre de l'axe vertical (Altitude / Pression) à gauche
             ctx.save();
             ctx.translate(20, paddingTop + graphHeight/2);
             ctx.rotate(-Math.PI / 2);
@@ -600,43 +591,48 @@
             ctx.fillText("Altitude (m) / Pression (hPa)", 0, 0);
             ctx.restore();
 
+            // Titre de l'axe horizontal (Température)
             ctx.textAlign = 'center';
             ctx.font = 'bold 12px sans-serif';
-            ctx.fillText("Température (°C)", paddingLeft + graphWidth/2, paddingTop + graphHeight + 40);
+            ctx.fillText("Température (°C)", paddingLeft + graphWidth/2, paddingTop + graphHeight + 43);
+
+            // Double graduation de l'axe vertical (Altitude en gras, Pression en dessous)
+            ctx.textAlign = 'right';
+            for (let alt = minAlt; alt <= maxAlt; alt += 500) {
+                let y = getY(alt);
+                let hpa = altToHpa(alt);
+
+                // Petit trait de graduation sur l'axe
+                ctx.strokeStyle = '#2c3e50';
+                ctx.beginPath();
+                ctx.moveTo(paddingLeft - 5, y);
+                ctx.lineTo(paddingLeft, y);
+                ctx.stroke();
+
+                // 1. Altitude en GRAS (placée légèrement au-dessus de la ligne Y de repère)
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.fillText(alt + " m", paddingLeft - 10, y - 2);
+
+                // 2. Pression en dessous (placée légèrement en dessous de la ligne Y de repère)
+                ctx.fillStyle = '#7f8c8d';
+                ctx.font = 'normal 9.5px sans-serif';
+                ctx.fillText(hpa + " hPa", paddingLeft - 10, y + 10);
+            }
         }
 
         function drawGrid() {
             ctx.lineWidth = 1;
             ctx.font = '10px sans-serif';
 
-            // 1. Lignes horizontales d'altitudes (tous les 500m)
+            // 1. Grille des altitudes horizontales (tous les 500m)
             for (let alt = minAlt; alt <= maxAlt; alt += 500) {
                 let y = getY(alt);
-                let hpa = altToHpa(alt);
-
                 ctx.strokeStyle = '#e2e8f0';
                 ctx.beginPath();
                 ctx.moveTo(paddingLeft, y);
                 ctx.lineTo(paddingLeft + graphWidth, y);
                 ctx.stroke();
-
-                if (state.axes) {
-                    ctx.strokeStyle = '#2c3e50';
-                    ctx.beginPath();
-                    ctx.moveTo(paddingLeft - 5, y);
-                    ctx.lineTo(paddingLeft + 5, y);
-                    ctx.stroke();
-
-                    ctx.textAlign = 'right';
-
-                    ctx.fillStyle = '#2c3e50';
-                    ctx.font = 'bold 11px sans-serif';
-                    ctx.fillText(alt + " m", paddingLeft - 10, y - 2);
-
-                    ctx.fillStyle = '#7f8c8d';
-                    ctx.font = 'normal 9.5px sans-serif';
-                    ctx.fillText(hpa + " hPa", paddingLeft - 10, y + 10);
-                }
             }
 
             // 2. Isothermes inclinées à 30° (tous les 5°C)
@@ -651,7 +647,7 @@
                 ctx.lineTo(xEnd, getY(maxAlt));
                 ctx.stroke();
 
-                // Affichage de la température au sol (base de l'axe)
+                // Affichage des isothermes graduées sur l'axe du sol
                 if (state.axes && t >= minTemp && t <= maxTemp) {
                     ctx.fillStyle = '#2c3e50';
                     ctx.font = 'normal 10px sans-serif';
@@ -660,7 +656,7 @@
             }
         }
 
-        // Adiabatiques sèches obliques (-1°C / 100m)
+        // Adiabatiques sèches de fond
         function drawDryAdiabats() {
             ctx.strokeStyle = 'rgba(220, 53, 69, 0.2)';
             ctx.lineWidth = 1;
@@ -685,7 +681,7 @@
             }
         }
 
-        // Adiabatiques saturées obliques (~ -0.6°C / 100m)
+        // Adiabatiques saturées de fond
         function drawWetAdiabats() {
             ctx.strokeStyle = 'rgba(25, 135, 84, 0.15)';
             ctx.lineWidth = 1;
