@@ -165,7 +165,7 @@
             text-align: center;
         }
 
-        /* Case à cocher stylisée pour l'activation des nuages */
+        /* Case à cocher stylisée */
         .checkbox-group {
             display: flex;
             align-items: center;
@@ -274,7 +274,6 @@
 
             <div>
                 <div class="section-title">4. Validation des Éléments</div>
-                <!-- Case à cocher pour les Nuages -->
                 <div class="checkbox-group" id="cloud-checkbox-container" onclick="toggleCloudDisplay(event)">
                     <input type="checkbox" id="show-clouds" onchange="draw()">
                     <label for="show-clouds" style="cursor: pointer; margin-left: 5px;">Afficher les Nuages (Validation)</label>
@@ -293,8 +292,8 @@
             <div class="info-box" id="info-pedago">
                 <strong>Calculateur de Thermique :</strong><br>
                 • Tracez les courbes d'État et de Point de Rosée (Étape 3).<br>
-                • Demandez à vos élèves de repérer les altitudes de condensation.<br>
-                • Cochez « Afficher les Nuages » (Étape 4) pour valider leur hypothèse !
+                • Demandez aux élèves de repérer les altitudes de condensation.<br>
+                • Cochez « Afficher les Nuages » (Étape 4) : les zones saturées s'affichent de façon homogène en gris clair avec l'étiquette « Couche nuageuse ».
             </div>
         </div>
 
@@ -372,12 +371,10 @@
             document.getElementById('mode-dew').classList.toggle('active', mode === 'dew');
         }
 
-        // Gestion de la case à cocher stylisée
         function toggleCloudDisplay(event) {
             const checkbox = document.getElementById('show-clouds');
             const container = document.getElementById('cloud-checkbox-container');
             
-            // Éviter de double-déclencher si l'utilisateur a cliqué directement sur la case elle-même
             if (event.target !== checkbox && event.target.tagName !== 'LABEL') {
                 checkbox.checked = !checkbox.checked;
             }
@@ -416,16 +413,13 @@
             return null;
         }
 
-        // Dessiner la bande grise de nuage/condensation à droite du graphique
+        // Identifier et dessiner les zones saturées en gris clair uniforme
         function drawCondensationZone() {
-            // Uniquement si les courbes existent ET que la case est cochée
             const showClouds = document.getElementById('show-clouds').checked;
             if (!showClouds || stateCurve.length < 2 || dewCurve.length < 2) return;
 
             let inCloud = false;
             let cloudStartAlt = 0;
-
-            ctx.fillStyle = 'rgba(180, 188, 196, 0.45)';
 
             // On scanne l'altitude de 10 m en 10 m
             for (let alt = 0; alt <= maxAlt; alt += 10) {
@@ -458,20 +452,24 @@
             }
         }
 
+        // Dessine une tranche de nuage uniforme gris clair
         function drawCloudSlice(startAlt, endAlt) {
-            let yStart = getY(startAlt);
-            let yEnd = getY(endAlt);
+            let yStart = getY(startAlt); // Bas du nuage
+            let yEnd = getY(endAlt);     // Haut du nuage
             let sliceHeight = yStart - yEnd;
 
-            let cloudWidth = graphWidth * 0.4;
+            let cloudWidth = graphWidth * 0.4; // Bande sur la droite
             let startX = paddingLeft + graphWidth - cloudWidth;
 
+            // Couleur uniforme gris clair translucide pour toute la zone
+            ctx.fillStyle = 'rgba(215, 220, 225, 0.6)';
             ctx.fillRect(startX, yEnd, cloudWidth, sliceHeight);
 
-            ctx.fillStyle = '#5c6b73';
-            ctx.font = 'italic bold 9px sans-serif';
+            // Légende "Couche nuageuse"
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'italic bold 10px sans-serif';
             ctx.textAlign = 'right';
-            ctx.fillText("NUAGE / saturation", paddingLeft + graphWidth - 10, yEnd + sliceHeight/2 + 3);
+            ctx.fillText("Couche nuageuse", paddingLeft + graphWidth - 10, yStart - 10);
         }
 
         // Calcul et dessin de la courbe de la bulle thermique (en vert)
@@ -545,7 +543,7 @@
             if (state.wet) drawWetAdiabats();
             if (state.axes) drawAxes();
             
-            // Dessine la zone de condensation (uniquement si cochée)
+            // Dessine d'abord la zone de condensation (arrière-plan des tracés)
             drawCondensationZone();
 
             // Tracés manuels
