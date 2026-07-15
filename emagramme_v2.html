@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Simulateur Émagramme Pédagogique - Vol Libre</title>
+    <title>Simulateur Émagramme Pédagogique - Vol Libre - V2.6</title>
     <style>
         :root {
             --bg-color: #f8f9fa;
@@ -197,15 +197,6 @@
             height: 16px;
         }
 
-        .info-box {
-            background: #fff8e1;
-            border-left: 4px solid #ffb300;
-            padding: 12px;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            line-height: 1.4;
-        }
-
         .clear-btn {
             padding: 8px;
             background: #fff0f1;
@@ -232,7 +223,7 @@
 <body>
 
     <h1>Simulateur d'Émagramme Pédagogique (Skew-T)</h1>
-    <div class="subtitle">Module 4 & 5 - Grille oblique, double graduation Altitude / Pression</div>
+    <div class="subtitle">Entre Ciel et Terre - Module 4 et 5 - L'Emagramme</div>
 
     <div class="container">
         <!-- Panneau de commandes gauche -->
@@ -288,11 +279,6 @@
                     <span style="font-size:0.85rem; font-weight:bold;">°C</span>
                 </div>
             </div>
-
-            <div class="info-box" id="info-pedago">
-                <strong>Format Skew-T :</strong><br>
-                Les isothermes sont inclinées de 30° vers la droite. Les calculs de refroidissement de la bulle verte respectent cette géométrie.
-            </div>
         </div>
 
         <!-- Zone Graphique Émagramme Élargie -->
@@ -315,7 +301,7 @@
         const minAlt = 0;
         const maxAlt = 5000;
 
-        // Marges adaptées (paddingBottom augmenté pour caler confortablement les chiffres sous l'axe X)
+        // Marges adaptées
         const paddingLeft = 90; 
         const paddingRight = 40;
         const paddingTop = 30;
@@ -352,7 +338,6 @@
             return xBase + hPixels * SKEW_FACTOR;
         }
 
-        // Retourne le pixel Y correspondant à l'altitude
         function getY(alt) {
             return paddingTop + graphHeight - ((alt - minAlt) / (maxAlt - minAlt)) * graphHeight;
         }
@@ -543,7 +528,6 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Masquer les tracés utilisateur hors du cadre de dessin active (les zones d'échelle débordent volontairement)
             ctx.save();
             ctx.beginPath();
             ctx.rect(paddingLeft, paddingTop, graphWidth, graphHeight);
@@ -592,51 +576,46 @@
             ctx.fillText("Altitude (m) / Pression (hPa)", 0, 0);
             ctx.restore();
 
-            // Titre de l'axe horizontal (Température) - Légèrement baissé pour ne pas chevaucher l'échelle
+            // Titre de l'axe horizontal (Température)
             ctx.textAlign = 'center';
             ctx.font = 'bold 12px sans-serif';
             ctx.fillText("Température (°C)", paddingLeft + graphWidth/2, paddingTop + graphHeight + 48);
 
-            // 1. Double graduation de l'axe vertical (Altitude en gras, Pression en dessous)
+            // Double graduation de l'axe vertical (Altitude en gras, Pression en dessous)
             ctx.textAlign = 'right';
             for (let alt = minAlt; alt <= maxAlt; alt += 500) {
                 let y = getY(alt);
                 let hpa = altToHpa(alt);
 
-                // Petit trait de graduation sur l'axe Y
                 ctx.strokeStyle = '#2c3e50';
                 ctx.beginPath();
                 ctx.moveTo(paddingLeft - 5, y);
                 ctx.lineTo(paddingLeft, y);
                 ctx.stroke();
 
-                // Altitude en GRAS
                 ctx.fillStyle = '#2c3e50';
                 ctx.font = 'bold 11px sans-serif';
                 ctx.fillText(alt + " m", paddingLeft - 10, y - 2);
 
-                // Pression en dessous
                 ctx.fillStyle = '#7f8c8d';
                 ctx.font = 'normal 9.5px sans-serif';
                 ctx.fillText(hpa + " hPa", paddingLeft - 10, y + 10);
             }
 
-            // 2. Graduation de l'axe horizontal (Température de -10°C à +40°C par pas de 5°C)
+            // Graduation de l'axe horizontal (Température de -10°C à +40°C)
             ctx.textAlign = 'center';
             ctx.fillStyle = '#2c3e50';
             ctx.font = 'bold 11px sans-serif';
             
             for (let t = minTemp; t <= maxTemp; t += 5) {
-                let x = getX(t, 0); // Position X au niveau du sol (alt = 0)
+                let x = getX(t, 0);
 
-                // Petit trait de graduation sur l'axe X
                 ctx.strokeStyle = '#2c3e50';
                 ctx.beginPath();
                 ctx.moveTo(x, paddingTop + graphHeight);
                 ctx.lineTo(x, paddingTop + graphHeight + 5);
                 ctx.stroke();
 
-                // Affichage du chiffre sous l'axe
                 ctx.fillText(t + "°C", x, paddingTop + graphHeight + 20);
             }
         }
@@ -644,7 +623,7 @@
         function drawGrid() {
             ctx.lineWidth = 1;
 
-            // 1. Grille des altitudes horizontales (tous les 500m)
+            // Grille des altitudes horizontales
             for (let alt = minAlt; alt <= maxAlt; alt += 500) {
                 let y = getY(alt);
                 ctx.strokeStyle = '#e2e8f0';
@@ -654,7 +633,7 @@
                 ctx.stroke();
             }
 
-            // 2. Isothermes inclinées à 30° (tous les 5°C)
+            // Isothermes inclinées à 30°
             for (let t = minTemp - 20; t <= maxTemp + 20; t += 5) {
                 let xStart = getX(t, 0);
                 let xEnd = getX(t, maxAlt);
