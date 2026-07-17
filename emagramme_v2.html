@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Simulateur Émagramme Pédagogique - Vol Libre - V2.7</title>
+    <title>Simulateur Émagramme Pédagogique - Vol Libre - V2.8</title>
     <style>
         :root {
             --bg-color: #f8f9fa;
@@ -11,6 +11,7 @@
             --primary-color: #0d6efd;
             --dry-color: #dc3545;
             --wet-color: #198754;
+            --mix-color: #007acc;
             --state-color: #e65c00;
             --dew-color: #007acc;
         }
@@ -139,7 +140,6 @@
             border-color: #343a40;
         }
 
-        /* Style du champ de saisie */
         .input-group {
             display: flex;
             align-items: center;
@@ -165,7 +165,6 @@
             text-align: center;
         }
 
-        /* Case à cocher stylisée */
         .checkbox-group {
             display: flex;
             align-items: center;
@@ -222,7 +221,7 @@
 </head>
 <body>
 
-    <h1>Simulateur d'Émagramme Pédagogique (Skew-T) - V2.7</h1>
+    <h1>Simulateur d'Émagramme Pédagogique (Skew-T) - V2.8</h1>
     <div class="subtitle">Entre Ciel et Terre - Module 4 et 5 - L'Emagramme</div>
 
     <div class="container">
@@ -249,6 +248,9 @@
                     <button class="toggle-btn" id="btn-wet" onclick="toggleElement('wet')">
                         <span class="indicator"></span> Adiabatiques Saturées (~ -0.6°C / 100m)
                     </button>
+                    <button class="toggle-btn" id="btn-mixing" onclick="toggleElement('mixing')">
+                        <span class="indicator"></span> Lignes d'Iso-Rapport de mélange (Pointillés Bleus)
+                    </button>
                 </div>
             </div>
 
@@ -256,7 +258,7 @@
                 <div class="section-title">3. Mode Dessin (Clic Souris)</div>
                 <div class="radio-group">
                     <button class="radio-btn active" id="mode-state" onclick="setDrawMode('state')">Courbe d'État (Réel)</button>
-                    <button class="radio-btn" id="mode-dew" onclick="setDrawMode('dew')">Point de Rosée</button>
+                    <button class="radio-btn" id="mode-dew" onclick="setDrawMode('dew')">Point de Rosée (Continu)</button>
                 </div>
                 <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 5px;">
                     <button class="clear-btn" onclick="clearCurves()">Effacer les tracés</button>
@@ -295,13 +297,11 @@
         const canvas = document.getElementById('emagramCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Paramètres des axes requis
         const minTemp = -10;
         const maxTemp = 40;
         const minAlt = 0;
         const maxAlt = 5000;
 
-        // Marges adaptées
         const paddingLeft = 90; 
         const paddingRight = 40;
         const paddingTop = 30;
@@ -310,28 +310,25 @@
         const graphWidth = canvas.width - paddingLeft - paddingRight;
         const graphHeight = canvas.height - paddingTop - paddingBottom;
 
-        // Constantes pour l'inclinaison à 30°
         const SKEW_ANGLE_RAD = 30 * Math.PI / 180; 
         const SKEW_FACTOR = Math.tan(SKEW_ANGLE_RAD); 
 
-        // Table d'équivalence standard OACI
         function altToHpa(alt) {
             return Math.round(1013.25 * Math.pow((1 - 0.0000225577 * alt), 5.2559));
         }
 
-        // États d'affichage initiaux
         let state = {
             axes: false,
             grid: false,
             dry: false,
             wet: false,
+            mixing: false,
             drawMode: 'state'
         };
 
         let stateCurve = [];
         let dewCurve = [];
 
-        // Transformation de coordonnées (Skew-T)
         function getX(temp, alt) {
             let xBase = paddingLeft + ((temp - minTemp) / (maxTemp - minTemp)) * graphWidth;
             let hPixels = getY(0) - getY(alt);
@@ -352,7 +349,6 @@
             return minAlt + ((paddingTop + graphHeight - y) / graphHeight) * (maxAlt - minAlt);
         }
 
-        // Fonctions d'interaction
         function toggleElement(element) {
             state[element] = !state[element];
             document.getElementById(`btn-${element}`).classList.toggle('active', state[element]);
@@ -386,7 +382,6 @@
             draw();
         }
 
-        // Récupérer la température d'une courbe dessinée à une altitude donnée
         function getTempAtAlt(curve, alt) {
             if (curve.length < 2) return null;
             
@@ -407,7 +402,6 @@
             return null;
         }
 
-        // Dessiner la bande de nuage
         function drawCondensationZone() {
             const showClouds = document.getElementById('show-clouds').checked;
             if (!showClouds || stateCurve.length < 2 || dewCurve.length < 2) return;
@@ -462,7 +456,6 @@
             ctx.fillText("Couche nuageuse", paddingLeft + graphWidth - 10, yStart - 10);
         }
 
-        // Calcul et dessin de la courbe de la bulle thermique en vert
         function drawActiveThermic() {
             let startTempRaw = document.getElementById('temp-sol').value;
             if (startTempRaw === "") return;
@@ -524,7 +517,6 @@
             }
         }
 
-        // Dessin complet
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -534,13 +526,15 @@
             ctx.clip();
 
             if (state.grid) drawGrid();
+            if (state.mixing) drawMixingRatioLines();
             if (state.dry) drawDryAdiabats();
             if (state.wet) drawWetAdiabats();
             
             drawCondensationZone();
 
             drawUserCurve(stateCurve, '#e65c00', 3, 'Courbe d’État (Air Réel)');
-            drawUserCurve(dewCurve, '#007acc', 2, 'Point de Rosée (Humidité)', true);
+            // NOUVEAUTÉ : Dessin du point de rosée utilisateur en bleu CONTINU (isDash = false) et épaisseur 3
+            drawUserCurve(dewCurve, '#007acc', 3, 'Point de Rosée (Humidité)', false);
 
             drawActiveThermic();
 
@@ -555,19 +549,16 @@
             ctx.fillStyle = '#2c3e50';
             ctx.font = '12px sans-serif';
 
-            // Axe vertical principal (Y)
             ctx.beginPath();
             ctx.moveTo(paddingLeft, paddingTop);
             ctx.lineTo(paddingLeft, paddingTop + graphHeight);
             ctx.stroke();
 
-            // Axe horizontal (X)
             ctx.beginPath();
             ctx.moveTo(paddingLeft, paddingTop + graphHeight);
             ctx.lineTo(paddingLeft + graphWidth, paddingTop + graphHeight);
             ctx.stroke();
 
-            // Titre de l'axe vertical (Altitude / Pression) à gauche
             ctx.save();
             ctx.translate(20, paddingTop + graphHeight/2);
             ctx.rotate(-Math.PI / 2);
@@ -576,12 +567,10 @@
             ctx.fillText("Altitude (m) / Pression (hPa)", 0, 0);
             ctx.restore();
 
-            // Titre de l'axe horizontal (Température)
             ctx.textAlign = 'center';
             ctx.font = 'bold 12px sans-serif';
             ctx.fillText("Température (°C)", paddingLeft + graphWidth/2, paddingTop + graphHeight + 48);
 
-            // Double graduation de l'axe vertical
             ctx.textAlign = 'right';
             for (let alt = minAlt; alt <= maxAlt; alt += 500) {
                 let y = getY(alt);
@@ -602,7 +591,6 @@
                 ctx.fillText(hpa + " hPa", paddingLeft - 10, y + 10);
             }
 
-            // Graduation de l'axe horizontal (Température de -10°C à +40°C)
             ctx.textAlign = 'center';
             ctx.fillStyle = '#2c3e50';
             ctx.font = 'bold 11px sans-serif';
@@ -621,7 +609,6 @@
         }
 
         function drawGrid() {
-            // Isothermes inclinées de référence (Épaisseur augmentée à 2px pour plus de lisibilité)
             ctx.lineWidth = 2;
             for (let t = minTemp - 20; t <= maxTemp + 20; t += 5) {
                 let xStart = getX(t, 0);
@@ -634,7 +621,6 @@
                 ctx.stroke();
             }
 
-            // Grille des altitudes horizontales
             ctx.lineWidth = 1;
             for (let alt = minAlt; alt <= maxAlt; alt += 500) {
                 let y = getY(alt);
@@ -646,10 +632,9 @@
             }
         }
 
-        // Adiabatiques sèches de fond
         function drawDryAdiabats() {
-            ctx.strokeStyle = 'rgba(220, 53, 69, 0.4)'; // Opacité légèrement augmentée pour le contraste
-            ctx.lineWidth = 2.5; // Épaisseur augmentée à 2.5px
+            ctx.strokeStyle = 'rgba(220, 53, 69, 0.4)'; 
+            ctx.lineWidth = 2.5; 
             for (let startT = minTemp - 20; startT <= maxTemp + 30; startT += 5) {
                 ctx.beginPath();
                 let started = false;
@@ -671,11 +656,10 @@
             }
         }
 
-        // Adiabatiques saturées de fond
         function drawWetAdiabats() {
-            ctx.strokeStyle = 'rgba(25, 135, 84, 0.45)'; // Opacité augmentée pour compenser le pointillé
-            ctx.lineWidth = 2; // Épaisseur augmentée à 2px
-            ctx.setLineDash([4, 4]); // Courbe bien en pointillés
+            ctx.strokeStyle = 'rgba(25, 135, 84, 0.45)'; 
+            ctx.lineWidth = 2; 
+            ctx.setLineDash([4, 4]); 
             
             for (let startT = minTemp - 20; startT <= maxTemp + 30; startT += 5) {
                 ctx.beginPath();
@@ -697,7 +681,35 @@
                 }
                 ctx.stroke();
             }
-            ctx.setLineDash([]); // Reset du style de ligne
+            ctx.setLineDash([]); 
+        }
+
+        // NOUVEAUTÉ : Tracé des lignes d'iso-rapport de mélange en POINTILLÉS BLEUS (fins et espacés)
+        function drawMixingRatioLines() {
+            ctx.strokeStyle = 'rgba(0, 122, 204, 0.45)'; // Bleu clair/moyen transparent
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 5]); // Pointillés réguliers et clairs
+
+            for (let startT = minTemp - 15; startT <= maxTemp; startT += 4) {
+                ctx.beginPath();
+                let started = false;
+                for (let alt = 0; alt <= maxAlt; alt += 250) {
+                    let tempOffset = startT + (alt / 1100); 
+                    let x = getX(tempOffset, alt);
+                    let y = getY(alt);
+
+                    if (x >= paddingLeft && x <= paddingLeft + graphWidth) {
+                        if (!started) {
+                            ctx.moveTo(x, y);
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+                ctx.stroke();
+            }
+            ctx.setLineDash([]); 
         }
 
         function drawUserCurve(points, color, width, label, isDash = false) {
