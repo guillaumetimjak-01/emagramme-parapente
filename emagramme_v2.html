@@ -581,7 +581,7 @@
             ctx.font = 'bold 12px sans-serif';
             ctx.fillText("Température (°C)", paddingLeft + graphWidth/2, paddingTop + graphHeight + 48);
 
-            // Double graduation de l'axe vertical (Altitude en gras, Pression en dessous)
+            // Double graduation de l'axe vertical
             ctx.textAlign = 'right';
             for (let alt = minAlt; alt <= maxAlt; alt += 500) {
                 let y = getY(alt);
@@ -621,19 +621,8 @@
         }
 
         function drawGrid() {
-            ctx.lineWidth = 1;
-
-            // Grille des altitudes horizontales
-            for (let alt = minAlt; alt <= maxAlt; alt += 500) {
-                let y = getY(alt);
-                ctx.strokeStyle = '#e2e8f0';
-                ctx.beginPath();
-                ctx.moveTo(paddingLeft, y);
-                ctx.lineTo(paddingLeft + graphWidth, y);
-                ctx.stroke();
-            }
-
-            // Isothermes inclinées à 30°
+            // Isothermes inclinées de référence (Épaisseur augmentée à 2px pour plus de lisibilité)
+            ctx.lineWidth = 2;
             for (let t = minTemp - 20; t <= maxTemp + 20; t += 5) {
                 let xStart = getX(t, 0);
                 let xEnd = getX(t, maxAlt);
@@ -644,12 +633,23 @@
                 ctx.lineTo(xEnd, getY(maxAlt));
                 ctx.stroke();
             }
+
+            // Grille des altitudes horizontales
+            ctx.lineWidth = 1;
+            for (let alt = minAlt; alt <= maxAlt; alt += 500) {
+                let y = getY(alt);
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.beginPath();
+                ctx.moveTo(paddingLeft, y);
+                ctx.lineTo(paddingLeft + graphWidth, y);
+                ctx.stroke();
+            }
         }
 
         // Adiabatiques sèches de fond
         function drawDryAdiabats() {
-            ctx.strokeStyle = 'rgba(220, 53, 69, 0.2)';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(220, 53, 69, 0.4)'; // Opacité légèrement augmentée pour le contraste
+            ctx.lineWidth = 2.5; // Épaisseur augmentée à 2.5px
             for (let startT = minTemp - 20; startT <= maxTemp + 30; startT += 5) {
                 ctx.beginPath();
                 let started = false;
@@ -673,9 +673,9 @@
 
         // Adiabatiques saturées de fond
         function drawWetAdiabats() {
-            ctx.strokeStyle = 'rgba(25, 135, 84, 0.15)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = 'rgba(25, 135, 84, 0.45)'; // Opacité augmentée pour compenser le pointillé
+            ctx.lineWidth = 2; // Épaisseur augmentée à 2px
+            ctx.setLineDash([4, 4]); // Courbe bien en pointillés
             
             for (let startT = minTemp - 20; startT <= maxTemp + 30; startT += 5) {
                 ctx.beginPath();
@@ -697,7 +697,7 @@
                 }
                 ctx.stroke();
             }
-            ctx.setLineDash([]);
+            ctx.setLineDash([]); // Reset du style de ligne
         }
 
         function drawUserCurve(points, color, width, label, isDash = false) {
