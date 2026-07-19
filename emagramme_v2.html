@@ -237,7 +237,7 @@
                         <span class="indicator"></span> Axes & Cadre (0-5000m / -10 à +40°C)
                     </button>
                     <button class="toggle-btn" id="btn-grid" onclick="toggleElement('grid')">
-                        <span class="indicator"></span> Grille oblique 45° (Alt, hPa & Temp)
+                        <span class="indicator"></span> Grille de légende
                     </button>
                 </div>
             </div>
@@ -310,7 +310,6 @@
         const minAlt = 0;
         const maxAlt = 5000;
 
-        // V3.0 : Dimensions adaptées pour accueillir la translation à 45°
         const paddingLeft = 80; 
         const paddingRight = 170; 
         const paddingTop = 30;
@@ -319,9 +318,8 @@
         const graphWidth = canvas.width - paddingLeft - paddingRight;
         const graphHeight = canvas.height - paddingTop - paddingBottom;
 
-        // V3.0 : Inclinaison à 45° (véritable Skew-T)
         const SKEW_ANGLE_RAD = 45 * Math.PI / 180; 
-        const SKEW_FACTOR = Math.tan(SKEW_ANGLE_RAD); // Vaut exactement 1
+        const SKEW_FACTOR = Math.tan(SKEW_ANGLE_RAD); 
 
         function altToHpa(alt) {
             return Math.round(1013.25 * Math.pow((1 - 0.0000225577 * alt), 5.2559));
@@ -490,7 +488,6 @@
             ctx.fillStyle = '#2c3e50';
             ctx.font = 'italic bold 10px sans-serif';
             ctx.textAlign = 'right';
-            // V3.0 : Renommage du libellé sur la zone graphique
             ctx.fillText("Couche nuageuse pré-existante", paddingLeft + graphWidth - 10, yStart - 10);
         }
 
@@ -638,7 +635,6 @@
             ctx.fillStyle = '#2c3e50';
             ctx.font = 'bold 11px sans-serif';
             
-            // On s'assure que les labels de température couvrent bien tout l'axe inférieur
             for (let t = minTemp - 20; t <= maxTemp + 20; t += 5) {
                 let x = getX(t, 0);
                 if(x >= paddingLeft && x <= paddingLeft + graphWidth) {
@@ -697,8 +693,6 @@
             ctx.textBaseline = 'alphabetic';
         }
 
-        // V3.0 : Extension des bornes de calcul (minTemp - 60 à maxTemp + 60)
-        // Indispensable pour que les tracés à 45° traversent toute la zone visible
         function drawGrid() {
             ctx.lineWidth = 2;
             for (let t = minTemp - 60; t <= maxTemp + 60; t += 5) {
