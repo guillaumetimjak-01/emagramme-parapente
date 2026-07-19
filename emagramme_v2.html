@@ -269,17 +269,6 @@
             </div>
 
             <div>
-                <div class="section-title">3. Valeurs de Températures (Clic Souris)</div>
-                <div class="radio-group">
-                    <button class="radio-btn active" id="mode-state" onclick="setDrawMode('state')">Courbe d'État (Réel)</button>
-                    <button class="radio-btn" id="mode-dew" onclick="setDrawMode('dew')">Point de Rosée (Continu)</button>
-                </div>
-                <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 5px;">
-                    <button class="clear-btn" onclick="clearCurves()">Effacer les tracés</button>
-                </div>
-            </div>
-
-            <div>
                 <div class="section-title">4. Validation des Éléments</div>
                 <div class="checkbox-group" id="cloud-checkbox-container" onclick="toggleCloudDisplay(event)">
                     <input type="checkbox" id="show-clouds" onchange="draw()">
