@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Simulateur Émagramme Pédagogique - Vol Libre - V2.9</title>
+    <title>Simulateur Émagramme Pédagogique - Vol Libre - V3.0</title>
     <style>
         :root {
             --bg-color: #f8f9fa;
@@ -47,7 +47,7 @@
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-            max-width: 1300px;
+            max-width: 1400px;
             width: 100%;
         }
 
@@ -56,7 +56,8 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
-            min-width: 280px;
+            min-width: 300px;
+            max-width: 350px;
         }
 
         .graph-area {
@@ -65,6 +66,7 @@
             border: 2px solid #cfd8dc;
             border-radius: 8px;
             cursor: crosshair;
+            overflow: hidden;
         }
 
         .section-title {
@@ -216,13 +218,13 @@
             border-top: 1px solid #e2e8f0;
             padding-top: 15px;
             width: 100%;
-            max-width: 1300px;
+            max-width: 1400px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Simulateur d'Émagramme Pédagogique (Skew-T) - V2.9</h1>
+    <h1>Simulateur d'Émagramme Pédagogique (Skew-T 45°) - V3.0</h1>
     <div class="subtitle">Entre Ciel et Terre - Module 4 et 5 - L'Emagramme</div>
 
     <div class="container">
@@ -235,7 +237,7 @@
                         <span class="indicator"></span> Axes & Cadre (0-5000m / -10 à +40°C)
                     </button>
                     <button class="toggle-btn" id="btn-grid" onclick="toggleElement('grid')">
-                        <span class="indicator"></span> Grille oblique (Alt, hPa & Temp)
+                        <span class="indicator"></span> Grille oblique 45° (Alt, hPa & Temp)
                     </button>
                 </div>
             </div>
@@ -270,13 +272,12 @@
                 <div class="section-title">4. Validation des Éléments</div>
                 <div class="checkbox-group" id="cloud-checkbox-container" onclick="toggleCloudDisplay(event)">
                     <input type="checkbox" id="show-clouds" onchange="draw()">
-                    <label for="show-clouds" style="cursor: pointer; margin-left: 5px;">Afficher les Nuages (Validation)</label>
+                    <label for="show-clouds" style="cursor: pointer; margin-left: 5px;">Afficher les Nuages Pré-existants</label>
                 </div>
             </div>
 
             <div>
                 <div class="section-title">5. Simulation Thermique Actif</div>
-                <!-- NOUVEAU : Champ Altitude du Sol -->
                 <div class="input-group" style="margin-bottom: 8px;">
                     <label for="alt-sol">Altitude Sol :</label>
                     <input type="number" id="alt-sol" placeholder="--" min="0" max="5000" step="50" oninput="draw()">
@@ -290,9 +291,9 @@
             </div>
         </div>
 
-        <!-- Zone Graphique Émagramme Élargie -->
+        <!-- Zone Graphique Émagramme Élargie pour le Skew 45° -->
         <div class="graph-area">
-            <canvas id="emagramCanvas" width="900" height="600"></canvas>
+            <canvas id="emagramCanvas" width="1000" height="600"></canvas>
         </div>
     </div>
 
@@ -309,7 +310,8 @@
         const minAlt = 0;
         const maxAlt = 5000;
 
-        const paddingLeft = 90; 
+        // V3.0 : Dimensions adaptées pour accueillir la translation à 45°
+        const paddingLeft = 80; 
         const paddingRight = 170; 
         const paddingTop = 30;
         const paddingBottom = 60;
@@ -317,8 +319,9 @@
         const graphWidth = canvas.width - paddingLeft - paddingRight;
         const graphHeight = canvas.height - paddingTop - paddingBottom;
 
-        const SKEW_ANGLE_RAD = 30 * Math.PI / 180; 
-        const SKEW_FACTOR = Math.tan(SKEW_ANGLE_RAD); 
+        // V3.0 : Inclinaison à 45° (véritable Skew-T)
+        const SKEW_ANGLE_RAD = 45 * Math.PI / 180; 
+        const SKEW_FACTOR = Math.tan(SKEW_ANGLE_RAD); // Vaut exactement 1
 
         function altToHpa(alt) {
             return Math.round(1013.25 * Math.pow((1 - 0.0000225577 * alt), 5.2559));
@@ -384,7 +387,7 @@
             stateCurve = [];
             dewCurve = [];
             document.getElementById('temp-sol').value = "";
-            document.getElementById('alt-sol').value = ""; // NOUVEAU : Efface aussi l'altitude du sol
+            document.getElementById('alt-sol').value = ""; 
             document.getElementById('show-clouds').checked = false;
             document.getElementById('cloud-checkbox-container').classList.remove('active');
             draw();
@@ -410,7 +413,6 @@
             return null;
         }
 
-        // NOUVEAUTÉ : Fonction pour dessiner le niveau du sol
         function drawGroundLevel() {
             let altSolRaw = document.getElementById('alt-sol').value;
             if (altSolRaw === "") return;
@@ -421,19 +423,16 @@
             let yGround = getY(altSol);
             let ySeaLevel = getY(0);
 
-            // Griser la zone comprise entre le sol et 0m
-            ctx.fillStyle = 'rgba(160, 160, 160, 0.5)'; // Gris semi-transparent
+            ctx.fillStyle = 'rgba(160, 160, 160, 0.5)'; 
             ctx.fillRect(paddingLeft, yGround, graphWidth, ySeaLevel - yGround);
 
-            // Dessiner la ligne marron représentant le sol
-            ctx.strokeStyle = '#8B4513'; // SaddleBrown
-            ctx.lineWidth = 3; // Même épaisseur que la courbe d'état
+            ctx.strokeStyle = '#8B4513'; 
+            ctx.lineWidth = 3; 
             ctx.beginPath();
             ctx.moveTo(paddingLeft, yGround);
             ctx.lineTo(paddingLeft + graphWidth, yGround);
             ctx.stroke();
 
-            // Ajouter une étiquette textuelle
             ctx.fillStyle = '#8B4513';
             ctx.font = 'bold 12px sans-serif';
             ctx.textAlign = 'left';
@@ -491,7 +490,8 @@
             ctx.fillStyle = '#2c3e50';
             ctx.font = 'italic bold 10px sans-serif';
             ctx.textAlign = 'right';
-            ctx.fillText("Couche nuageuse", paddingLeft + graphWidth - 10, yStart - 10);
+            // V3.0 : Renommage du libellé sur la zone graphique
+            ctx.fillText("Couche nuageuse pré-existante", paddingLeft + graphWidth - 10, yStart - 10);
         }
 
         function drawActiveThermic() {
@@ -501,7 +501,6 @@
             let startTemp = parseFloat(startTempRaw);
             if (isNaN(startTemp)) return;
 
-            // Déterminer l'altitude de départ du thermique (0m par défaut, ou Altitude Sol si renseignée)
             let altSolRaw = document.getElementById('alt-sol').value;
             let baseAlt = (altSolRaw !== "" && !isNaN(parseFloat(altSolRaw))) ? parseFloat(altSolRaw) : 0;
 
@@ -511,7 +510,7 @@
             let intersectionTemp = 0;
 
             for (let alt = baseAlt; alt <= maxAlt; alt += 10) {
-                let tempDrop = (alt - baseAlt) / 100; // Refroidissement calculé depuis le sol
+                let tempDrop = (alt - baseAlt) / 100; 
                 let thermicTemp = startTemp - tempDrop; 
                 let realTemp = getTempAtAlt(stateCurve, alt);
 
@@ -573,7 +572,7 @@
             if (state.dry) drawDryAdiabats();
             if (state.wet) drawWetAdiabats();
             
-            drawGroundLevel(); // Dessiné par-dessus les grilles pour griser la zone inférieure
+            drawGroundLevel(); 
 
             drawCondensationZone();
 
@@ -639,16 +638,17 @@
             ctx.fillStyle = '#2c3e50';
             ctx.font = 'bold 11px sans-serif';
             
-            for (let t = minTemp; t <= maxTemp; t += 5) {
+            // On s'assure que les labels de température couvrent bien tout l'axe inférieur
+            for (let t = minTemp - 20; t <= maxTemp + 20; t += 5) {
                 let x = getX(t, 0);
-
-                ctx.strokeStyle = '#2c3e50';
-                ctx.beginPath();
-                ctx.moveTo(x, paddingTop + graphHeight);
-                ctx.lineTo(x, paddingTop + graphHeight + 5);
-                ctx.stroke();
-
-                ctx.fillText(t + "°C", x, paddingTop + graphHeight + 20);
+                if(x >= paddingLeft && x <= paddingLeft + graphWidth) {
+                    ctx.strokeStyle = '#2c3e50';
+                    ctx.beginPath();
+                    ctx.moveTo(x, paddingTop + graphHeight);
+                    ctx.lineTo(x, paddingTop + graphHeight + 5);
+                    ctx.stroke();
+                    ctx.fillText(t + "°C", x, paddingTop + graphHeight + 20);
+                }
             }
 
             drawCloudLayerLegend();
@@ -662,7 +662,6 @@
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
 
-            // 1. Basse couche (0m - 3000m)
             let y0 = getY(0);
             let y3000 = getY(3000);
             
@@ -676,7 +675,6 @@
             ctx.fillStyle = '#7f8c8d';
             ctx.fillText("(0m à 3000m)", textX, (y0 + y3000)/2 + 9);
 
-            // 2. Couche intermédiaire / Alto (3000m - 6000m)
             let yMax = getY(maxAlt);
             
             ctx.fillStyle = 'rgba(100, 149, 237, 0.7)'; 
@@ -692,7 +690,6 @@
             ctx.fillStyle = '#7f8c8d';
             ctx.fillText("(3000m à 6000m)", textX, (y3000 + yMax)/2 + 16);
 
-            // 3. Couche supérieure / Cirro (> 6000m)
             ctx.fillStyle = '#7f8c8d';
             ctx.font = 'italic bold 11px sans-serif';
             ctx.fillText("↑ Couche supérieure (Cirro) : 6000m à 9000m", rightEdge - 60, paddingTop - 12);
@@ -700,9 +697,11 @@
             ctx.textBaseline = 'alphabetic';
         }
 
+        // V3.0 : Extension des bornes de calcul (minTemp - 60 à maxTemp + 60)
+        // Indispensable pour que les tracés à 45° traversent toute la zone visible
         function drawGrid() {
             ctx.lineWidth = 2;
-            for (let t = minTemp - 20; t <= maxTemp + 20; t += 5) {
+            for (let t = minTemp - 60; t <= maxTemp + 60; t += 5) {
                 let xStart = getX(t, 0);
                 let xEnd = getX(t, maxAlt);
 
@@ -727,7 +726,7 @@
         function drawDryAdiabats() {
             ctx.strokeStyle = 'rgba(220, 53, 69, 0.4)'; 
             ctx.lineWidth = 2.5; 
-            for (let startT = minTemp - 20; startT <= maxTemp + 30; startT += 5) {
+            for (let startT = minTemp - 60; startT <= maxTemp + 60; startT += 5) {
                 ctx.beginPath();
                 let started = false;
                 for (let alt = 0; alt <= maxAlt; alt += 200) {
@@ -753,7 +752,7 @@
             ctx.lineWidth = 2; 
             ctx.setLineDash([4, 4]); 
             
-            for (let startT = minTemp - 20; startT <= maxTemp + 30; startT += 5) {
+            for (let startT = minTemp - 60; startT <= maxTemp + 60; startT += 5) {
                 ctx.beginPath();
                 let started = false;
                 for (let alt = 0; alt <= maxAlt; alt += 200) {
@@ -781,7 +780,7 @@
             ctx.lineWidth = 1.5;
             ctx.setLineDash([6, 5]); 
 
-            for (let startT = minTemp - 15; startT <= maxTemp; startT += 4) {
+            for (let startT = minTemp - 60; startT <= maxTemp + 60; startT += 4) {
                 ctx.beginPath();
                 let started = false;
                 for (let alt = 0; alt <= maxAlt; alt += 250) {
