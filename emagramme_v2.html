@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Simulateur Émagramme Pédagogique - Vol Libre - V3.1</title>
+    <title>Simulateur Émagramme Pédagogique - Vol Libre - V3.4</title>
     <style>
         :root {
             --bg-color: #f8f9fa;
@@ -224,14 +224,14 @@
 </head>
 <body>
 
-    <h1>Simulateur d'Émagramme Pédagogique (Skew-T 45°) - V3.1</h1>
+    <h1>Simulateur d'Émagramme Pédagogique (Skew-T 45°) - V3.4</h1>
     <div class="subtitle">Entre Ciel et Terre - Module 4 et 5 - L'Emagramme</div>
 
     <div class="container">
         <!-- Panneau de commandes gauche -->
         <div class="control-panel">
-            <div>
-                <div class="section-title">1. Structure du Graphique</div>
+            <details>
+                <summary class="section-title" style="cursor: pointer; outline: none;">1. Structure du Graphique</summary>
                 <div class="btn-group">
                     <button class="toggle-btn" id="btn-axes" onclick="toggleElement('axes')">
                         <span class="indicator"></span> Axes & Cadre (0-5000m / -10 à +40°C)
@@ -240,10 +240,24 @@
                         <span class="indicator"></span> Grille de légende
                     </button>
                 </div>
-            </div>
+            </details>
 
-            <div>
-                <div class="section-title">2. Valeurs de Températures (Clic Souris)</div>
+            <details>
+                <summary class="section-title" style="cursor: pointer; outline: none;">2. Simulation Thermique Actif</summary>
+                <div class="input-group" style="margin-bottom: 8px;">
+                    <label for="alt-sol">Altitude Sol :</label>
+                    <input type="number" id="alt-sol" placeholder="--" min="0" max="5000" step="50" oninput="draw()">
+                    <span style="font-size:0.85rem; font-weight:bold;">m</span>
+                </div>
+                <div class="input-group">
+                    <label for="temp-sol">T° au sol :</label>
+                    <input type="number" id="temp-sol" placeholder="--" min="-10" max="40" step="0.5" oninput="draw()">
+                    <span style="font-size:0.85rem; font-weight:bold;">°C</span>
+                </div>
+            </details>
+
+            <details>
+                <summary class="section-title" style="cursor: pointer; outline: none;">3. Valeurs de Températures (Clic Souris)</summary>
                 <div class="radio-group">
                     <button class="radio-btn active" id="mode-state" onclick="setDrawMode('state')">Courbe d'État (Réel)</button>
                     <button class="radio-btn" id="mode-dew" onclick="setDrawMode('dew')">Point de Rosée (Continu)</button>
@@ -251,10 +265,10 @@
                 <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 5px;">
                     <button class="clear-btn" onclick="clearCurves()">Effacer les tracés</button>
                 </div>
-            </div>
+            </details>
 			
-            <div>
-                <div class="section-title">3. Constantes Physiques</div>
+            <details>
+                <summary class="section-title" style="cursor: pointer; outline: none;">4. Constantes Physiques</summary>
                 <div class="btn-group">
                     <button class="toggle-btn" id="btn-dry" onclick="toggleElement('dry')">
                         <span class="indicator"></span> Adiabatiques Sèches (-1°C / 100m)
@@ -266,29 +280,23 @@
                         <span class="indicator"></span> Lignes d'Iso-Rapport de mélange
                     </button>
                 </div>
-            </div>
+            </details>
 
-            <div>
-                <div class="section-title">4. Validation des Éléments</div>
+            <details>
+                <summary class="section-title" style="cursor: pointer; outline: none;">5. Validation des Éléments</summary>
                 <div class="checkbox-group" id="cloud-checkbox-container" onclick="toggleCloudDisplay(event)">
                     <input type="checkbox" id="show-clouds" onchange="draw()">
                     <label for="show-clouds" style="cursor: pointer; margin-left: 5px;">Afficher les Nuages Pré-existants</label>
                 </div>
-            </div>
-
-            <div>
-                <div class="section-title">5. Simulation Thermique Actif</div>
-                <div class="input-group" style="margin-bottom: 8px;">
-                    <label for="alt-sol">Altitude Sol :</label>
-                    <input type="number" id="alt-sol" placeholder="--" min="0" max="5000" step="50" oninput="draw()">
-                    <span style="font-size:0.85rem; font-weight:bold;">m</span>
+                <div class="checkbox-group" id="convective-checkbox-container" onclick="toggleConvectiveDisplay(event)" style="margin-top: 8px;">
+                    <input type="checkbox" id="show-convective" onchange="draw()">
+                    <label for="show-convective" style="cursor: pointer; margin-left: 5px;">Base des nuages convectifs</label>
                 </div>
-                <div class="input-group">
-                    <label for="temp-sol">T° au sol :</label>
-                    <input type="number" id="temp-sol" placeholder="--" min="-10" max="40" step="0.5" oninput="draw()">
-                    <span style="font-size:0.85rem; font-weight:bold;">°C</span>
+                <div class="checkbox-group" id="convective-top-checkbox-container" onclick="toggleConvectiveTopDisplay(event)" style="margin-top: 8px;">
+                    <input type="checkbox" id="show-convective-top" onchange="draw()">
+                    <label for="show-convective-top" style="cursor: pointer; margin-left: 5px;">Sommet des nuages convectifs</label>
                 </div>
-            </div>
+            </details>
         </div>
 
         <!-- Zone Graphique Émagramme Élargie pour le Skew 45° -->
@@ -372,11 +380,29 @@
         function toggleCloudDisplay(event) {
             const checkbox = document.getElementById('show-clouds');
             const container = document.getElementById('cloud-checkbox-container');
-            
             if (event.target !== checkbox && event.target.tagName !== 'LABEL') {
                 checkbox.checked = !checkbox.checked;
             }
-            
+            container.classList.toggle('active', checkbox.checked);
+            draw();
+        }
+
+        function toggleConvectiveDisplay(event) {
+            const checkbox = document.getElementById('show-convective');
+            const container = document.getElementById('convective-checkbox-container');
+            if (event.target !== checkbox && event.target.tagName !== 'LABEL') {
+                checkbox.checked = !checkbox.checked;
+            }
+            container.classList.toggle('active', checkbox.checked);
+            draw();
+        }
+
+        function toggleConvectiveTopDisplay(event) {
+            const checkbox = document.getElementById('show-convective-top');
+            const container = document.getElementById('convective-top-checkbox-container');
+            if (event.target !== checkbox && event.target.tagName !== 'LABEL') {
+                checkbox.checked = !checkbox.checked;
+            }
             container.classList.toggle('active', checkbox.checked);
             draw();
         }
@@ -386,8 +412,16 @@
             dewCurve = [];
             document.getElementById('temp-sol').value = "";
             document.getElementById('alt-sol').value = ""; 
+            
             document.getElementById('show-clouds').checked = false;
             document.getElementById('cloud-checkbox-container').classList.remove('active');
+            
+            document.getElementById('show-convective').checked = false;
+            document.getElementById('convective-checkbox-container').classList.remove('active');
+
+            document.getElementById('show-convective-top').checked = false;
+            document.getElementById('convective-top-checkbox-container').classList.remove('active');
+            
             draw();
         }
 
@@ -556,6 +590,136 @@
             }
         }
 
+        // Fonction fusionnée pour Base et Sommet des nuages convectifs
+        function drawConvectiveClouds() {
+            const showConvectiveBase = document.getElementById('show-convective').checked;
+            const showConvectiveTop = document.getElementById('show-convective-top').checked;
+
+            if (!showConvectiveBase && !showConvectiveTop) return;
+
+            let altSolRaw = document.getElementById('alt-sol').value;
+            let tempSolRaw = document.getElementById('temp-sol').value;
+            if (altSolRaw === "" || tempSolRaw === "") return;
+
+            let altSol = parseFloat(altSolRaw);
+            let tempSol = parseFloat(tempSolRaw);
+            if (isNaN(altSol) || isNaN(tempSol) || dewCurve.length < 2) return;
+
+            // Récupérer le point de rosée au niveau du sol
+            let tDewSol = getTempAtAlt(dewCurve, altSol);
+            if (tDewSol === null) return; 
+
+            let basePoints = [];
+            let intersectionAlt = null;
+            let intersectionTemp = null;
+
+            // 1. Calcul de la base (intersection thermique sec et iso-rapport de mélange)
+            for (let alt = altSol; alt <= maxAlt; alt += 10) {
+                let tempDrop = (alt - altSol) / 100;
+                let thermicTemp = tempSol - tempDrop; 
+                let mixingTemp = tDewSol + ((alt - altSol) / 1100); 
+
+                basePoints.push({ x: getX(mixingTemp, alt), y: getY(alt) });
+
+                if (mixingTemp >= thermicTemp) {
+                    intersectionAlt = alt;
+                    intersectionTemp = mixingTemp;
+                    break;
+                }
+            }
+
+            // Dessin de la BASE
+            if (showConvectiveBase && basePoints.length > 0) {
+                ctx.strokeStyle = '#007acc'; 
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([5, 4]); 
+                ctx.beginPath();
+                ctx.moveTo(basePoints[0].x, basePoints[0].y);
+                for (let i = 1; i < basePoints.length; i++) {
+                    ctx.lineTo(basePoints[i].x, basePoints[i].y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]); 
+
+                if (intersectionAlt !== null) {
+                    let endX = getX(intersectionTemp, intersectionAlt);
+                    let endY = getY(intersectionAlt);
+
+                    ctx.fillStyle = '#007acc';
+                    ctx.beginPath();
+                    ctx.arc(endX, endY, 5, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#2c3e50';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'left'; 
+                    ctx.fillText(` Base Cumulus : ${Math.round(intersectionAlt)} m`, endX + 10, endY + 4); 
+                }
+            }
+
+            // Dessin du SOMMET
+            if (showConvectiveTop && intersectionAlt !== null) {
+                let topPoints = [];
+                let topIntersectionAlt = null;
+                let topIntersectionTemp = null;
+                
+                // La particule commence à monter depuis la base avec la température de la base
+                let currentTemp = intersectionTemp;
+
+                topPoints.push({ x: getX(currentTemp, intersectionAlt), y: getY(intersectionAlt) });
+
+                for (let alt = intersectionAlt + 10; alt <= maxAlt; alt += 10) {
+                    let step = 10;
+                    // Utilisation du même gradient adiabatique humide approximatif que la fonction drawWetAdiabats
+                    let lapseRate = 0.55 + (alt / 20000); 
+                    currentTemp -= (step / 100) * lapseRate;
+                    
+                    let realTemp = getTempAtAlt(stateCurve, alt);
+                    topPoints.push({ x: getX(currentTemp, alt), y: getY(alt) });
+
+                    // Arrêt si la particule d'air devient plus froide ou égale à l'air ambiant
+                    if (realTemp !== null && currentTemp <= realTemp) {
+                        topIntersectionAlt = alt;
+                        topIntersectionTemp = currentTemp;
+                        break;
+                    }
+                }
+
+                if (topPoints.length > 1) {
+                    // Tracer l'ascendance humide
+                    ctx.strokeStyle = '#27ae60'; // Vert (comme les ascendances sèches)
+                    ctx.lineWidth = 3.5;
+                    ctx.setLineDash([6, 5]); // En pointillé
+                    ctx.beginPath();
+                    ctx.moveTo(topPoints[0].x, topPoints[0].y);
+                    for (let i = 1; i < topPoints.length; i++) {
+                        ctx.lineTo(topPoints[i].x, topPoints[i].y);
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]); // Rétablir la ligne continue
+
+                    let endX = getX(topIntersectionTemp || currentTemp, topIntersectionAlt || maxAlt);
+                    let endY = getY(topIntersectionAlt || maxAlt);
+
+                    // Point central d'arrêt (rouge, comme l'arrêt d'ascendance)
+                    ctx.fillStyle = '#d32f2f';
+                    ctx.beginPath();
+                    ctx.arc(endX, endY, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    // Texte de légende
+                    ctx.fillStyle = '#27ae60';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'left';
+                    if (topIntersectionAlt !== null) {
+                        ctx.fillText(` Sommet Cumulus : ${Math.round(topIntersectionAlt)} m`, endX + 10, endY + 4);
+                    } else {
+                        ctx.fillText(` Sommet > ${maxAlt} m`, endX + 10, endY + 4);
+                    }
+                }
+            }
+        }
+
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -577,6 +741,8 @@
             drawUserCurve(dewCurve, '#007acc', 3, 'Point de Rosée (Humidité)', false);
 
             drawActiveThermic();
+            
+            drawConvectiveClouds();
 
             ctx.restore();
 
