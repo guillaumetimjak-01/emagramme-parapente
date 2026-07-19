@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Simulateur Émagramme Pédagogique - Vol Libre - V2.8</title>
+    <title>Simulateur Émagramme Pédagogique - Vol Libre - V2.9</title>
     <style>
         :root {
             --bg-color: #f8f9fa;
@@ -221,7 +221,7 @@
 </head>
 <body>
 
-    <h1>Simulateur d'Émagramme Pédagogique (Skew-T) - V2.8</h1>
+    <h1>Simulateur d'Émagramme Pédagogique (Skew-T) - V2.9</h1>
     <div class="subtitle">Entre Ciel et Terre - Module 4 et 5 - L'Emagramme</div>
 
     <div class="container">
@@ -249,7 +249,7 @@
                         <span class="indicator"></span> Adiabatiques Saturées (~ -0.6°C / 100m)
                     </button>
                     <button class="toggle-btn" id="btn-mixing" onclick="toggleElement('mixing')">
-                        <span class="indicator"></span> Lignes d'Iso-Rapport de mélange (Pointillés Bleus)
+                        <span class="indicator"></span> Lignes d'Iso-Rapport de mélange
                     </button>
                 </div>
             </div>
@@ -302,8 +302,9 @@
         const minAlt = 0;
         const maxAlt = 5000;
 
+        // V2.9 : Augmentation de la marge droite pour accueillir la légende des nuages
         const paddingLeft = 90; 
-        const paddingRight = 40;
+        const paddingRight = 170; 
         const paddingTop = 30;
         const paddingBottom = 60;
 
@@ -533,7 +534,6 @@
             drawCondensationZone();
 
             drawUserCurve(stateCurve, '#e65c00', 3, 'Courbe d’État (Air Réel)');
-            // NOUVEAUTÉ : Dessin du point de rosée utilisateur en bleu CONTINU (isDash = false) et épaisseur 3
             drawUserCurve(dewCurve, '#007acc', 3, 'Point de Rosée (Humidité)', false);
 
             drawActiveThermic();
@@ -606,6 +606,57 @@
 
                 ctx.fillText(t + "°C", x, paddingTop + graphHeight + 20);
             }
+
+            // NOUVEAUTÉ V2.9 : Légende visuelle des types de nuages sur l'axe droit
+            drawCloudLayerLegend();
+        }
+
+        // Fonction dédiée au dessin de la légende des étages nuageux
+        function drawCloudLayerLegend() {
+            let rightEdge = paddingLeft + graphWidth;
+            let barWidth = 8; // Épaisseur de la barre de couleur
+            let textX = rightEdge + barWidth + 10;
+
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            // 1. Basse couche (0m - 3000m)
+            let y0 = getY(0);
+            let y3000 = getY(3000);
+            
+            ctx.fillStyle = 'rgba(173, 216, 230, 0.7)'; // LightBlue
+            ctx.fillRect(rightEdge, y3000, barWidth, y0 - y3000);
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText("Basse couche", textX, (y0 + y3000)/2 - 7);
+            ctx.font = 'normal 11px sans-serif';
+            ctx.fillStyle = '#7f8c8d';
+            ctx.fillText("(0m à 3000m)", textX, (y0 + y3000)/2 + 9);
+
+            // 2. Couche intermédiaire / Alto (3000m - 6000m -> visible jusqu'à 5000m maxAlt)
+            let yMax = getY(maxAlt);
+            
+            ctx.fillStyle = 'rgba(100, 149, 237, 0.7)'; // CornflowerBlue
+            ctx.fillRect(rightEdge, yMax, barWidth, y3000 - yMax);
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText("Couche intermédiaire", textX, (y3000 + yMax)/2 - 14);
+            ctx.font = 'italic bold 11px sans-serif';
+            ctx.fillStyle = '#198754'; // Vert subtil pour faire ressortir le mot clé
+            ctx.fillText("Alto", textX, (y3000 + yMax)/2 + 2);
+            ctx.font = 'normal 11px sans-serif';
+            ctx.fillStyle = '#7f8c8d';
+            ctx.fillText("(3000m à 6000m)", textX, (y3000 + yMax)/2 + 16);
+
+            // 3. Couche supérieure / Cirro (> 6000m) pointée par une indication en haut du graph
+            ctx.fillStyle = '#7f8c8d';
+            ctx.font = 'italic bold 11px sans-serif';
+            ctx.fillText("↑ Couche supérieure (Cirro) : 6000m à 9000m", rightEdge - 60, paddingTop - 12);
+            
+            // Rétablissement de la baseline
+            ctx.textBaseline = 'alphabetic';
         }
 
         function drawGrid() {
@@ -684,11 +735,10 @@
             ctx.setLineDash([]); 
         }
 
-        // NOUVEAUTÉ : Tracé des lignes d'iso-rapport de mélange en POINTILLÉS BLEUS (fins et espacés)
         function drawMixingRatioLines() {
-            ctx.strokeStyle = 'rgba(0, 122, 204, 0.45)'; // Bleu clair/moyen transparent
+            ctx.strokeStyle = 'rgba(0, 122, 204, 0.45)'; 
             ctx.lineWidth = 1.5;
-            ctx.setLineDash([6, 5]); // Pointillés réguliers et clairs
+            ctx.setLineDash([6, 5]); 
 
             for (let startT = minTemp - 15; startT <= maxTemp; startT += 4) {
                 ctx.beginPath();
