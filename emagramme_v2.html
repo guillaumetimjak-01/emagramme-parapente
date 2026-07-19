@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Simulateur Émagramme Pédagogique - Vol Libre - V3.4</title>
+    <title>Simulateur Émagramme Pédagogique - Vol Libre - V3.4 (Correction Parallaxe)</title>
     <style>
         :root {
             --bg-color: #f8f9fa;
@@ -274,7 +274,7 @@
                         <span class="indicator"></span> Adiabatiques Sèches (-1°C / 100m)
                     </button>
                     <button class="toggle-btn" id="btn-wet" onclick="toggleElement('wet')">
-                        <span class="indicator"></span> Adiabatiques Saturées (~ -0.6°C / 100m)
+                        <span class="indicator"></span> Adiabatiques Humides (~ -0.6°C / 100m)
                     </button>
                     <button class="toggle-btn" id="btn-mixing" onclick="toggleElement('mixing')">
                         <span class="indicator"></span> Lignes d'Iso-Rapport de mélange
@@ -657,22 +657,22 @@
                 }
             }
 
-            // Dessin du SOMMET
+            // 2. Dessin du SOMMET
             if (showConvectiveTop && intersectionAlt !== null) {
                 let topPoints = [];
                 let topIntersectionAlt = null;
                 let topIntersectionTemp = null;
                 
-                // La particule commence à monter depuis la base avec la température de la base
-                let currentTemp = intersectionTemp;
+                // Calcul du pseudo "startT" pour être parfaitement parallèle aux adiabatiques humides tracées
+                // La fonction d'origine utilise : T(alt) = startT - (alt / 100) * (0.55 + alt / 20000)
+                let pseudoStartT = intersectionTemp + (intersectionAlt / 100) * (0.55 + (intersectionAlt / 20000));
 
-                topPoints.push({ x: getX(currentTemp, intersectionAlt), y: getY(intersectionAlt) });
+                topPoints.push({ x: getX(intersectionTemp, intersectionAlt), y: getY(intersectionAlt) });
 
                 for (let alt = intersectionAlt + 10; alt <= maxAlt; alt += 10) {
-                    let step = 10;
-                    // Utilisation du même gradient adiabatique humide approximatif que la fonction drawWetAdiabats
+                    // Calcul analytique exact pour garantir le parallélisme avec la grille de fond
                     let lapseRate = 0.55 + (alt / 20000); 
-                    currentTemp -= (step / 100) * lapseRate;
+                    let currentTemp = pseudoStartT - (alt / 100) * lapseRate;
                     
                     let realTemp = getTempAtAlt(stateCurve, alt);
                     topPoints.push({ x: getX(currentTemp, alt), y: getY(alt) });
