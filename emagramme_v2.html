@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Simulateur Émagramme Pédagogique - Vol Libre - V3.0</title>
+    <title>Simulateur Émagramme Pédagogique - Vol Libre - V3.1</title>
     <style>
         :root {
             --bg-color: #f8f9fa;
@@ -224,7 +224,7 @@
 </head>
 <body>
 
-    <h1>Simulateur d'Émagramme Pédagogique (Skew-T 45°) - V3.0</h1>
+    <h1>Simulateur d'Émagramme Pédagogique (Skew-T 45°) - V3.1</h1>
     <div class="subtitle">Entre Ciel et Terre - Module 4 et 5 - L'Emagramme</div>
 
     <div class="container">
@@ -243,7 +243,18 @@
             </div>
 
             <div>
-                <div class="section-title">2. Constantes Physiques</div>
+                <div class="section-title">2. Valeurs de Températures (Clic Souris)</div>
+                <div class="radio-group">
+                    <button class="radio-btn active" id="mode-state" onclick="setDrawMode('state')">Courbe d'État (Réel)</button>
+                    <button class="radio-btn" id="mode-dew" onclick="setDrawMode('dew')">Point de Rosée (Continu)</button>
+                </div>
+                <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 5px;">
+                    <button class="clear-btn" onclick="clearCurves()">Effacer les tracés</button>
+                </div>
+            </div>
+			
+            <div>
+                <div class="section-title">3. Constantes Physiques</div>
                 <div class="btn-group">
                     <button class="toggle-btn" id="btn-dry" onclick="toggleElement('dry')">
                         <span class="indicator"></span> Adiabatiques Sèches (-1°C / 100m)
