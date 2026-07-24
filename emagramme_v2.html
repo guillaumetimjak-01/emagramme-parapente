@@ -9,7 +9,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="https://guillaumetimjak-01.github.io/emagramme-parapente/favicon.png">
-    <title>Simulateur Émagramme Pédagogique - Vol Libre - V3.4 (Correction Parallaxe)</title>
+    <title>Simulateur Émagramme Pédagogique - Vol Libre - V3.8 (Alertes Nuageuses)</title>
     <style>
         :root {
             --bg-color: #f8f9fa;
@@ -231,7 +231,7 @@
 </head>
 <body>
 
-    <h1>Simulateur d'Émagramme Pédagogique (Skew-T 45°) - V3.4</h1>
+    <h1>Simulateur d'Émagramme Pédagogique (Skew-T 45°) - V3.8</h1>
     <div class="subtitle">Entre Ciel et Terre - Module 4 et 5 - L'Emagramme</div>
 
     <div class="container">
@@ -303,6 +303,10 @@
                     <input type="checkbox" id="show-convective-top" onchange="draw()">
                     <label for="show-convective-top" style="cursor: pointer; margin-left: 5px;">Sommet des nuages convectifs</label>
                 </div>
+                <div class="checkbox-group" id="ceiling-checkbox-container" onclick="toggleFlightCeilingDisplay(event)" style="margin-top: 8px;">
+                    <input type="checkbox" id="show-flight-ceiling" onchange="draw()">
+                    <label for="show-flight-ceiling" style="cursor: pointer; margin-left: 5px;">Plafond de vol</label>
+                </div>
             </details>
         </div>
 
@@ -351,6 +355,9 @@
 
         let stateCurve = [];
         let dewCurve = [];
+        
+        // Liste pour stocker les messages d'erreur/avertissement à dessiner sous le graphique
+        let warningMessages = [];
 
         function getX(temp, alt) {
             let xBase = paddingLeft + ((temp - minTemp) / (maxTemp - minTemp)) * graphWidth;
@@ -414,6 +421,16 @@
             draw();
         }
 
+        function toggleFlightCeilingDisplay(event) {
+            const checkbox = document.getElementById('show-flight-ceiling');
+            const container = document.getElementById('ceiling-checkbox-container');
+            if (event.target !== checkbox && event.target.tagName !== 'LABEL') {
+                checkbox.checked = !checkbox.checked;
+            }
+            container.classList.toggle('active', checkbox.checked);
+            draw();
+        }
+
         function clearCurves() {
             stateCurve = [];
             dewCurve = [];
@@ -428,6 +445,9 @@
 
             document.getElementById('show-convective-top').checked = false;
             document.getElementById('convective-top-checkbox-container').classList.remove('active');
+
+            document.getElementById('show-flight-ceiling').checked = false;
+            document.getElementById('ceiling-checkbox-container').classList.remove('active');
             
             draw();
         }
@@ -480,22 +500,31 @@
 
         function drawCondensationZone() {
             const showClouds = document.getElementById('show-clouds').checked;
-            if (!showClouds || stateCurve.length < 2 || dewCurve.length < 2) return;
+            if (!showClouds) return;
 
+            let cloudFound = false;
             let inCloud = false;
             let cloudStartAlt = 0;
 
-            for (let alt = 0; alt <= maxAlt; alt += 10) {
-                let tReal = getTempAtAlt(stateCurve, alt);
-                let tDew = getTempAtAlt(dewCurve, alt);
+            if (stateCurve.length >= 2 && dewCurve.length >= 2) {
+                for (let alt = 0; alt <= maxAlt; alt += 10) {
+                    let tReal = getTempAtAlt(stateCurve, alt);
+                    let tDew = getTempAtAlt(dewCurve, alt);
 
-                if (tReal !== null && tDew !== null) {
-                    let diff = Math.abs(tReal - tDew);
-                    
-                    if (diff <= 0.5) {
-                        if (!inCloud) {
-                            inCloud = true;
-                            cloudStartAlt = alt;
+                    if (tReal !== null && tDew !== null) {
+                        let diff = Math.abs(tReal - tDew);
+                        
+                        if (diff <= 0.5) {
+                            cloudFound = true;
+                            if (!inCloud) {
+                                inCloud = true;
+                                cloudStartAlt = alt;
+                            }
+                        } else {
+                            if (inCloud) {
+                                drawCloudSlice(cloudStartAlt, alt);
+                                inCloud = false;
+                            }
                         }
                     } else {
                         if (inCloud) {
@@ -503,15 +532,15 @@
                             inCloud = false;
                         }
                     }
-                } else {
-                    if (inCloud) {
-                        drawCloudSlice(cloudStartAlt, alt);
-                        inCloud = false;
-                    }
+                }
+                if (inCloud) {
+                    drawCloudSlice(cloudStartAlt, maxAlt);
                 }
             }
-            if (inCloud) {
-                drawCloudSlice(cloudStartAlt, maxAlt);
+
+            // Si la case est cochée mais qu'aucun nuage n'a été trouvé
+            if (!cloudFound) {
+                warningMessages.push({ text: "Pas de nuages pré-existants", color: '#7f8c8d' });
             }
         }
 
@@ -530,6 +559,88 @@
             ctx.font = 'italic bold 10px sans-serif';
             ctx.textAlign = 'right';
             ctx.fillText("Couche nuageuse pré-existante", paddingLeft + graphWidth - 10, yStart - 10);
+        }
+
+        function drawFlightCeiling() {
+            const showCeiling = document.getElementById('show-flight-ceiling').checked;
+            if (!showCeiling) return;
+
+            let altSolRaw = document.getElementById('alt-sol').value;
+            let tempSolRaw = document.getElementById('temp-sol').value;
+            if (altSolRaw === "" || tempSolRaw === "") return;
+
+            let altSol = parseFloat(altSolRaw);
+            let tempSol = parseFloat(tempSolRaw);
+            if (isNaN(altSol) || isNaN(tempSol)) return;
+
+            // 1. Calcul du sommet du thermique (ascendance pure)
+            let thermalTopAlt = null;
+            for (let alt = altSol; alt <= maxAlt; alt += 10) {
+                let thermicTemp = tempSol - ((alt - altSol) / 100); 
+                let realTemp = getTempAtAlt(stateCurve, alt);
+
+                if (realTemp !== null && thermicTemp <= realTemp) {
+                    thermalTopAlt = alt;
+                    break;
+                }
+            }
+            if (thermalTopAlt === null) thermalTopAlt = maxAlt;
+
+            // 2. Calcul de la base des nuages convectifs
+            let convectiveBaseAlt = null;
+            if (dewCurve.length >= 2) {
+                let tDewSol = getTempAtAlt(dewCurve, altSol);
+                if (tDewSol !== null) {
+                    for (let alt = altSol; alt <= maxAlt; alt += 10) {
+                        let thermicTemp = tempSol - ((alt - altSol) / 100);
+                        let mixingTemp = tDewSol + ((alt - altSol) / 1100);
+                        if (mixingTemp >= thermicTemp) {
+                            convectiveBaseAlt = alt;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 3. Calcul de la base des nuages pré-existants
+            let preExistingBaseAlt = null;
+            if (stateCurve.length >= 2 && dewCurve.length >= 2) {
+                for (let alt = altSol; alt <= maxAlt; alt += 10) {
+                    let tReal = getTempAtAlt(stateCurve, alt);
+                    let tDew = getTempAtAlt(dewCurve, alt);
+                    if (tReal !== null && tDew !== null && Math.abs(tReal - tDew) <= 0.5) {
+                        preExistingBaseAlt = alt;
+                        break;
+                    }
+                }
+            }
+
+            // 4. Définition du plafond final
+            let ceilingAlt = thermalTopAlt;
+            if (convectiveBaseAlt !== null && convectiveBaseAlt < ceilingAlt) {
+                ceilingAlt = convectiveBaseAlt;
+            }
+            if (preExistingBaseAlt !== null && preExistingBaseAlt < ceilingAlt) {
+                ceilingAlt = preExistingBaseAlt;
+            }
+
+            // Dessin de la zone
+            if (ceilingAlt > altSol) {
+                let yBottom = getY(altSol);
+                let yTop = getY(ceilingAlt);
+                let height = yBottom - yTop;
+                
+                let zoneWidth = graphWidth * 0.30;
+                let startX = paddingLeft + graphWidth * 0.35; 
+
+                ctx.fillStyle = 'rgba(255, 235, 59, 0.25)'; 
+                ctx.fillRect(startX, yTop, zoneWidth, height);
+
+                ctx.fillStyle = '#827717';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Plafond de vol (${Math.round(ceilingAlt)} m)`, startX + (zoneWidth / 2), yTop - 8);
+            }
         }
 
         function drawActiveThermic() {
@@ -597,7 +708,6 @@
             }
         }
 
-        // Fonction fusionnée pour Base et Sommet des nuages convectifs
         function drawConvectiveClouds() {
             const showConvectiveBase = document.getElementById('show-convective').checked;
             const showConvectiveTop = document.getElementById('show-convective-top').checked;
@@ -606,21 +716,40 @@
 
             let altSolRaw = document.getElementById('alt-sol').value;
             let tempSolRaw = document.getElementById('temp-sol').value;
-            if (altSolRaw === "" || tempSolRaw === "") return;
+            
+            // On ne peut rien calculer sans les données de base
+            if (altSolRaw === "" || tempSolRaw === "") {
+                warningMessages.push({ text: "Données thermiques (Sol) manquantes", color: '#e67e22' });
+                return;
+            }
 
             let altSol = parseFloat(altSolRaw);
             let tempSol = parseFloat(tempSolRaw);
-            if (isNaN(altSol) || isNaN(tempSol) || dewCurve.length < 2) return;
+            if (isNaN(altSol) || isNaN(tempSol) || dewCurve.length < 2 || stateCurve.length < 2) {
+                 warningMessages.push({ text: "Courbes d'état et point de rosée incomplètes", color: '#e67e22' });
+                 return;
+            }
+
+            // 1. Calcul du sommet du thermique pour vérifier le développement
+            let thermalTopAlt = maxAlt;
+            for (let alt = altSol; alt <= maxAlt; alt += 10) {
+                let thermicTemp = tempSol - ((alt - altSol) / 100); 
+                let realTemp = getTempAtAlt(stateCurve, alt);
+                if (realTemp !== null && thermicTemp <= realTemp) {
+                    thermalTopAlt = alt;
+                    break;
+                }
+            }
 
             // Récupérer le point de rosée au niveau du sol
             let tDewSol = getTempAtAlt(dewCurve, altSol);
             if (tDewSol === null) return; 
 
             let basePoints = [];
-            let intersectionAlt = null;
-            let intersectionTemp = null;
+            let lclAlt = null; // Lifting Condensation Level (Base théorique)
+            let lclTemp = null;
 
-            // 1. Calcul de la base (intersection thermique sec et iso-rapport de mélange)
+            // 2. Calcul de la base théorique
             for (let alt = altSol; alt <= maxAlt; alt += 10) {
                 let tempDrop = (alt - altSol) / 100;
                 let thermicTemp = tempSol - tempDrop; 
@@ -629,13 +758,20 @@
                 basePoints.push({ x: getX(mixingTemp, alt), y: getY(alt) });
 
                 if (mixingTemp >= thermicTemp) {
-                    intersectionAlt = alt;
-                    intersectionTemp = mixingTemp;
+                    lclAlt = alt;
+                    lclTemp = mixingTemp;
                     break;
                 }
             }
 
-            // Dessin de la BASE
+            // VERIFICATION : L'ascendance s'arrête-t-elle avant de condenser ?
+            if (lclAlt === null || lclAlt >= thermalTopAlt) {
+                // Pas de développement nuageux possible, on enregistre le message
+                warningMessages.push({ text: "Pas de développement de nuages convectifs", color: '#c0392b' });
+                return; // Interrompt la fonction : rien d'autre ne sera tracé.
+            }
+
+            // 3. Dessin de la BASE (si demandée et valide)
             if (showConvectiveBase && basePoints.length > 0) {
                 ctx.strokeStyle = '#007acc'; 
                 ctx.lineWidth = 2.5;
@@ -648,43 +784,37 @@
                 ctx.stroke();
                 ctx.setLineDash([]); 
 
-                if (intersectionAlt !== null) {
-                    let endX = getX(intersectionTemp, intersectionAlt);
-                    let endY = getY(intersectionAlt);
+                let endX = getX(lclTemp, lclAlt);
+                let endY = getY(lclAlt);
 
-                    ctx.fillStyle = '#007acc';
-                    ctx.beginPath();
-                    ctx.arc(endX, endY, 5, 0, 2 * Math.PI);
-                    ctx.fill();
+                ctx.fillStyle = '#007acc';
+                ctx.beginPath();
+                ctx.arc(endX, endY, 5, 0, 2 * Math.PI);
+                ctx.fill();
 
-                    ctx.fillStyle = '#2c3e50';
-                    ctx.font = 'bold 11px sans-serif';
-                    ctx.textAlign = 'left'; 
-                    ctx.fillText(` Base Cumulus : ${Math.round(intersectionAlt)} m`, endX + 10, endY + 4); 
-                }
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'left'; 
+                ctx.fillText(` Base Cumulus : ${Math.round(lclAlt)} m`, endX + 10, endY + 4); 
             }
 
-            // 2. Dessin du SOMMET
-            if (showConvectiveTop && intersectionAlt !== null) {
+            // 4. Dessin du SOMMET (si demandé et valide)
+            if (showConvectiveTop) {
                 let topPoints = [];
                 let topIntersectionAlt = null;
                 let topIntersectionTemp = null;
                 
-                // Calcul du pseudo "startT" pour être parfaitement parallèle aux adiabatiques humides tracées
-                // La fonction d'origine utilise : T(alt) = startT - (alt / 100) * (0.55 + alt / 20000)
-                let pseudoStartT = intersectionTemp + (intersectionAlt / 100) * (0.55 + (intersectionAlt / 20000));
+                let pseudoStartT = lclTemp + (lclAlt / 100) * (0.55 + (lclAlt / 20000));
 
-                topPoints.push({ x: getX(intersectionTemp, intersectionAlt), y: getY(intersectionAlt) });
+                topPoints.push({ x: getX(lclTemp, lclAlt), y: getY(lclAlt) });
 
-                for (let alt = intersectionAlt + 10; alt <= maxAlt; alt += 10) {
-                    // Calcul analytique exact pour garantir le parallélisme avec la grille de fond
+                for (let alt = lclAlt + 10; alt <= maxAlt; alt += 10) {
                     let lapseRate = 0.55 + (alt / 20000); 
                     let currentTemp = pseudoStartT - (alt / 100) * lapseRate;
                     
                     let realTemp = getTempAtAlt(stateCurve, alt);
                     topPoints.push({ x: getX(currentTemp, alt), y: getY(alt) });
 
-                    // Arrêt si la particule d'air devient plus froide ou égale à l'air ambiant
                     if (realTemp !== null && currentTemp <= realTemp) {
                         topIntersectionAlt = alt;
                         topIntersectionTemp = currentTemp;
@@ -693,28 +823,25 @@
                 }
 
                 if (topPoints.length > 1) {
-                    // Tracer l'ascendance humide
-                    ctx.strokeStyle = '#27ae60'; // Vert (comme les ascendances sèches)
+                    ctx.strokeStyle = '#27ae60';
                     ctx.lineWidth = 3.5;
-                    ctx.setLineDash([6, 5]); // En pointillé
+                    ctx.setLineDash([6, 5]);
                     ctx.beginPath();
                     ctx.moveTo(topPoints[0].x, topPoints[0].y);
                     for (let i = 1; i < topPoints.length; i++) {
                         ctx.lineTo(topPoints[i].x, topPoints[i].y);
                     }
                     ctx.stroke();
-                    ctx.setLineDash([]); // Rétablir la ligne continue
+                    ctx.setLineDash([]);
 
                     let endX = getX(topIntersectionTemp || currentTemp, topIntersectionAlt || maxAlt);
                     let endY = getY(topIntersectionAlt || maxAlt);
 
-                    // Point central d'arrêt (rouge, comme l'arrêt d'ascendance)
                     ctx.fillStyle = '#d32f2f';
                     ctx.beginPath();
                     ctx.arc(endX, endY, 6, 0, 2 * Math.PI);
                     ctx.fill();
 
-                    // Texte de légende
                     ctx.fillStyle = '#27ae60';
                     ctx.font = 'bold 11px sans-serif';
                     ctx.textAlign = 'left';
@@ -723,14 +850,45 @@
                     } else {
                         ctx.fillText(` Sommet > ${maxAlt} m`, endX + 10, endY + 4);
                     }
+                    
+                    let yBase = getY(lclAlt);
+                    let finalTopAlt = topIntersectionAlt !== null ? topIntersectionAlt : maxAlt;
+                    let yTop = getY(finalTopAlt);
+                    let sliceHeight = yBase - yTop; 
+                    let cloudWidth = graphWidth * 0.35;
+                    
+                    ctx.fillStyle = 'rgba(170, 180, 185, 0.6)'; 
+                    ctx.fillRect(paddingLeft, yTop, cloudWidth, sliceHeight);
+                    
+                    ctx.fillStyle = '#2c3e50';
+                    ctx.font = 'italic bold 10px sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.fillText("Couche convective", paddingLeft + 10, yBase - 10);
                 }
             }
         }
 
+        function drawWarningMessages() {
+            if (warningMessages.length === 0) return;
+            
+            // Position de départ sous l'axe X
+            let msgY = paddingTop + graphHeight + 35; 
+            
+            warningMessages.forEach(msg => {
+                ctx.fillStyle = msg.color;
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText(msg.text, paddingLeft + 10, msgY);
+                msgY += 16; // Décale le message suivant vers le bas
+            });
+        }
+
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            warningMessages = []; // Réinitialise les messages à chaque tracé
 
             ctx.save();
+            // Création d'une zone de coupe (clipping) pour que les tracés ne débordent pas du cadre
             ctx.beginPath();
             ctx.rect(paddingLeft, paddingTop, graphWidth, graphHeight);
             ctx.clip();
@@ -741,6 +899,8 @@
             if (state.wet) drawWetAdiabats();
             
             drawGroundLevel(); 
+
+            drawFlightCeiling();
 
             drawCondensationZone();
 
@@ -753,7 +913,9 @@
 
             ctx.restore();
 
+            // On dessine les axes ET les messages par-dessus, sans la zone de coupe
             if (state.axes) drawAxes();
+            drawWarningMessages();
         }
 
         function drawAxes() {
