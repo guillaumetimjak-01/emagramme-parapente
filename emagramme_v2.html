@@ -159,7 +159,7 @@
         <!-- Panneau de commandes gauche -->
         <div class="control-panel">
             
-            <!-- NOUVELLE SECTION : IMPORT JSON -->
+            <!-- SECTION : IMPORT JSON -->
             <details open>
                 <summary class="section-title" style="cursor: pointer; outline: none; color: #0d6efd;">0. Profils Pré-enregistrés</summary>
                 <div class="input-group" style="flex-direction: column; align-items: stretch; gap: 8px; background-color: #e7f1ff; border-color: #b6d4fe;">
@@ -381,7 +381,6 @@
             document.getElementById('show-flight-ceiling').checked = false;
             document.getElementById('ceiling-checkbox-container').classList.remove('active');
             
-            // Si on utilise le bouton effacer, on remet le select à vide
             document.getElementById('profil-select').value = "";
             document.getElementById('profil-desc').style.display = 'none';
 
@@ -1100,7 +1099,6 @@
             if (state.drawMode === 'state') stateCurve = targetArray;
             else dewCurve = targetArray;
 
-            // Si on dessine à la main, on décoche le profil actuel pour éviter la confusion
             document.getElementById('profil-select').value = "";
             document.getElementById('profil-desc').style.display = 'none';
 
@@ -1112,10 +1110,8 @@
         // ==========================================
         let profilsData = [];
 
-        // 1. Récupération du fichier JSON (avec paramètre anti-cache)
         async function fetchProfils() {
             try {
-                // Charge le fichier JSON hébergé au même niveau que ce fichier HTML
                 const response = await fetch('profils_meteo.json?t=' + new Date().getTime());
                 if (!response.ok) throw new Error("Fichier introuvable");
                 
@@ -1131,16 +1127,19 @@
                 });
             } catch (error) {
                 console.warn("Base de données JSON ignorée ou introuvable :", error.message);
-                // Le simulateur démarre vierge et fonctionne manuellement
             }
         }
 
-        // 2. Reconstruction des pixels X/Y selon l'échelle physique
         function chargerCourbesDepuisProfil(profil) {
-            
-            // Nettoyage complet (mais on garde l'ID du sélecteur)
+            // Nettoyage des tracés
             stateCurve = [];
             dewCurve = [];
+            
+            // Vidage explicite des champs du sol et de la température pour garder la bulle vide
+            document.getElementById('alt-sol').value = "";
+            document.getElementById('temp-sol').value = "";
+
+            // Nettoyage des options d'affichage
             document.getElementById('show-clouds').checked = false;
             document.getElementById('cloud-checkbox-container').classList.remove('active');
             document.getElementById('show-convective').checked = false;
@@ -1151,8 +1150,8 @@
             document.getElementById('ceiling-checkbox-container').classList.remove('active');
             
             const reconstruirePoints = (pointsSaves) => {
+                if (!pointsSaves) return [];
                 return pointsSaves.map(pt => {
-                    // On recalcule le pixel à partir des vraies valeurs physiques (Température / Altitude)
                     let a = pt.alt;
                     let t = pt.temp; 
                     return {
@@ -1160,24 +1159,15 @@
                         y: getY(a),    
                         alt: a
                     };
-                }).sort((a, b) => b.y - a.y); // Tri par altitude pour tracer proprement
+                }).sort((a, b) => b.y - a.y);
             };
 
             if (profil.courbe_etat) stateCurve = reconstruirePoints(profil.courbe_etat);
             if (profil.point_rosee) dewCurve = reconstruirePoints(profil.point_rosee);
 
-            // 3. Remplissage automatique des champs "Sol" d'après le point le plus bas
-            if (stateCurve.length > 0) {
-                let pointSol = stateCurve[stateCurve.length - 1]; 
-                let tempSol = getTempFromXY(pointSol.x, pointSol.y);
-                document.getElementById('alt-sol').value = Math.round(pointSol.alt);
-                document.getElementById('temp-sol').value = tempSol.toFixed(1);
-            }
-
-            draw(); // Rendu visuel
+            draw(); 
         }
 
-        // 4. Écouteur sur la liste déroulante
         document.getElementById('profil-select').addEventListener('change', function(e) {
             const profilId = e.target.value;
             const descEl = document.getElementById('profil-desc');
@@ -1203,8 +1193,8 @@
         // ==========================================
         // DÉMARRAGE INITIAL
         // ==========================================
-        draw();          // Initialise la grille vide
-        fetchProfils();  // Tente de charger le JSON
+        draw();          
+        fetchProfils();  
     </script>
 </body>
 </html>
