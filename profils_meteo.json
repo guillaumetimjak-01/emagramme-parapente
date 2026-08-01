@@ -119,3 +119,28 @@
         }
     ]
 },
+{
+    "profils": [
+        {
+            "id": 1718000000000,
+            "nom": "Air Stable - Inversion de subsidence",
+            "description": "Exemple d'inversion marquée bloquant toute ascendance thermique autour de 1200m.",
+            "courbe_etat": [
+                { "alt": 3000, "temp": 0.5 },
+                { "alt": 2000, "temp": 6.5 },
+                { "alt": 1300, "temp": 11 },
+                { "alt": 1000, "temp": 8 },
+                { "alt": 500, "temp": 12 },
+                { "alt": 200, "temp": 14 }
+            ],
+            "point_rosee": [
+                { "alt": 3000, "temp": -15 },
+                { "alt": 2000, "temp": -8 },
+                { "alt": 1300, "temp": -5 },
+                { "alt": 1000, "temp": 4 },
+                { "alt": 500, "temp": 5 },
+                { "alt": 200, "temp": 6 }
+            ]
+        }
+    ]
+}
