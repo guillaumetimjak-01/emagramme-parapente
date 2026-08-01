@@ -165,5 +165,134 @@
                 }
             ]
         }
+		{
+    "id": 1785576162919,
+    "nom": "Module 5 - Atelier N°2",
+    "description": "Altitude décollage : 4500m - Déterminez les éléments suivants : Nuages pré-existans, base des nuages convectifs, épaisseur de la couche convective, plafond de vol, risque orageux",
+    "courbe_etat": [
+        {
+            "alt": 32,
+            "temp": 27.81
+        },
+        {
+            "alt": 513,
+            "temp": 24.48
+        },
+        {
+            "alt": 660,
+            "temp": 23.21
+        },
+        {
+            "alt": 866,
+            "temp": 21.61
+        },
+        {
+            "alt": 1042,
+            "temp": 20.01
+        },
+        {
+            "alt": 1228,
+            "temp": 18.28
+        },
+        {
+            "alt": 1415,
+            "temp": 16.08
+        },
+        {
+            "alt": 1611,
+            "temp": 13.95
+        },
+        {
+            "alt": 1866,
+            "temp": 11.48
+        },
+        {
+            "alt": 2111,
+            "temp": 9.61
+        },
+        {
+            "alt": 2356,
+            "temp": 8.55
+        },
+        {
+            "alt": 2718,
+            "temp": 9.21
+        },
+        {
+            "alt": 2807,
+            "temp": 10.41
+        },
+        {
+            "alt": 3140,
+            "temp": 6.61
+        },
+        {
+            "alt": 3415,
+            "temp": 3.68
+        },
+        {
+            "alt": 3679,
+            "temp": 1.81
+        },
+        {
+            "alt": 4013,
+            "temp": -0.05
+        },
+        {
+            "alt": 4405,
+            "temp": -3.05
+        },
+        {
+            "alt": 4601,
+            "temp": -4.39
+        }
+    ],
+    "point_rosee": [
+        {
+            "alt": 91,
+            "temp": 13.55
+        },
+        {
+            "alt": 620,
+            "temp": 9.61
+        },
+        {
+            "alt": 924,
+            "temp": 8.08
+        },
+        {
+            "alt": 1444,
+            "temp": 7.55
+        },
+        {
+            "alt": 2013,
+            "temp": 10.21
+        },
+        {
+            "alt": 2385,
+            "temp": 8.21
+        },
+        {
+            "alt": 2993,
+            "temp": -0.52
+        },
+        {
+            "alt": 3640,
+            "temp": -3.92
+        },
+        {
+            "alt": 4022,
+            "temp": -7.05
+        },
+        {
+            "alt": 4169,
+            "temp": -10.85
+        },
+        {
+            "alt": 4473,
+            "temp": -13.72
+        }
     ]
+},
+  ]
 }
