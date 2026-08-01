@@ -9,7 +9,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="https://guillaumetimjak-01.github.io/emagramme-parapente/favicon.png">
-    <title>Simulateur Émagramme Pédagogique - Vol Libre - V3.8 (Alertes Nuageuses)</title>
+    <title>Simulateur Émagramme Pédagogique - Vol Libre - V3.9 (Scénarios JSON)</title>
     <style>
         :root {
             --bg-color: #f8f9fa;
@@ -105,138 +105,72 @@
             transition: all 0.2s ease;
         }
 
-        .toggle-btn:hover {
-            background: #e9ecef;
-        }
-
-        .toggle-btn.active {
-            background: #e7f1ff;
-            border-color: #b6d4fe;
-            font-weight: 500;
-        }
-
+        .toggle-btn:hover { background: #e9ecef; }
+        .toggle-btn.active { background: #e7f1ff; border-color: #b6d4fe; font-weight: 500; }
+        
         .toggle-btn .indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #dee2e6;
-            display: inline-block;
+            width: 12px; height: 12px; border-radius: 50%;
+            background: #dee2e6; display: inline-block;
         }
+        .toggle-btn.active .indicator { background: var(--primary-color); }
 
-        .toggle-btn.active .indicator {
-            background: var(--primary-color);
-        }
-
-        .radio-group {
-            display: flex;
-            gap: 8px;
-        }
-
+        .radio-group { display: flex; gap: 8px; }
         .radio-btn {
-            flex: 1;
-            padding: 8px;
-            text-align: center;
-            background: #f1f3f5;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
+            flex: 1; padding: 8px; text-align: center; background: #f1f3f5;
+            border: 1px solid #ced4da; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
         }
-
-        .radio-btn.active {
-            background: #343a40;
-            color: #fff;
-            border-color: #343a40;
-        }
+        .radio-btn.active { background: #343a40; color: #fff; border-color: #343a40; }
 
         .input-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: #f8f9fa;
-            padding: 10px;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
+            display: flex; align-items: center; gap: 10px; background: #f8f9fa;
+            padding: 10px; border: 1px solid #ced4da; border-radius: 6px;
         }
-
-        .input-group label {
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: #495057;
-            flex: 1;
-        }
-
+        .input-group label { font-size: 0.85rem; font-weight: 500; color: #495057; flex: 1; }
         .input-group input {
-            width: 70px;
-            padding: 6px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-weight: bold;
-            text-align: center;
+            width: 70px; padding: 6px; border: 1px solid #ced4da; border-radius: 4px;
+            font-weight: bold; text-align: center;
         }
 
         .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: #f1f3f5;
-            padding: 10px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
-            cursor: pointer;
-            user-select: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
+            display: flex; align-items: center; gap: 10px; background: #f1f3f5;
+            padding: 10px 12px; border: 1px solid #ced4da; border-radius: 6px;
+            cursor: pointer; user-select: none; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease;
         }
-        
-        .checkbox-group:hover {
-            background: #e9ecef;
-        }
+        .checkbox-group:hover { background: #e9ecef; }
+        .checkbox-group.active { background: #e2f0fe; border-color: #b6d4fe; color: #0b5ed7; }
+        .checkbox-group input { cursor: pointer; width: 16px; height: 16px; }
 
-        .checkbox-group.active {
-            background: #e2f0fe;
-            border-color: #b6d4fe;
-            color: #0b5ed7;
-        }
-
-        .checkbox-group input {
-            cursor: pointer;
-            width: 16px;
-            height: 16px;
-        }
-
-        .clear-btn {
-            padding: 8px;
-            background: #fff0f1;
-            border: 1px solid #ffa8a8;
-            color: #e03131;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-        }
+        .clear-btn { padding: 8px; background: #fff0f1; border: 1px solid #ffa8a8; color: #e03131; border-radius: 6px; cursor: pointer; font-weight: 500; }
         .clear-btn:hover { background: #ffe3e3; }
 
         .footer-copyright {
-            margin-top: 30px;
-            font-size: 0.8rem;
-            color: #88929a;
-            text-align: center;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 15px;
-            width: 100%;
-            max-width: 1400px;
+            margin-top: 30px; font-size: 0.8rem; color: #88929a;
+            text-align: center; border-top: 1px solid #e2e8f0; padding-top: 15px;
+            width: 100%; max-width: 1400px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Simulateur d'Émagramme Pédagogique (Skew-T 45°) - V3.8</h1>
+    <h1>Simulateur d'Émagramme Pédagogique (Skew-T 45°) - V3.9</h1>
     <div class="subtitle">Entre Ciel et Terre - Module 4 et 5 - L'Emagramme</div>
 
     <div class="container">
         <!-- Panneau de commandes gauche -->
         <div class="control-panel">
+            
+            <!-- NOUVELLE SECTION : IMPORT JSON -->
+            <details open>
+                <summary class="section-title" style="cursor: pointer; outline: none; color: #0d6efd;">0. Profils Pré-enregistrés</summary>
+                <div class="input-group" style="flex-direction: column; align-items: stretch; gap: 8px; background-color: #e7f1ff; border-color: #b6d4fe;">
+                    <select id="profil-select" style="padding: 8px; border-radius: 6px; border: 1px solid #ced4da; width: 100%; font-family: inherit; font-size: 0.9rem; cursor: pointer;">
+                        <option value="">-- Démarrer vierge --</option>
+                    </select>
+                    <div id="profil-desc" style="color: #084298; font-size: 0.85rem; display: none; background: #cfe2ff; padding: 8px; border-radius: 6px; font-style: italic;">
+                    </div>
+                </div>
+            </details>
+
             <details>
                 <summary class="section-title" style="cursor: pointer; outline: none;">1. Structure du Graphique</summary>
                 <div class="btn-group">
@@ -263,17 +197,17 @@
                 </div>
             </details>
 
-            <details>
-                <summary class="section-title" style="cursor: pointer; outline: none;">3. Valeurs de Températures (Clic Souris)</summary>
+            <details open>
+                <summary class="section-title" style="cursor: pointer; outline: none;">3. Tracés Manuels (Clic Souris)</summary>
                 <div class="radio-group">
                     <button class="radio-btn active" id="mode-state" onclick="setDrawMode('state')">Courbe d'État (Réel)</button>
                     <button class="radio-btn" id="mode-dew" onclick="setDrawMode('dew')">Point de Rosée (Continu)</button>
                 </div>
                 <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 5px;">
-                    <button class="clear-btn" onclick="clearCurves()">Effacer les tracés</button>
+                    <button class="clear-btn" onclick="clearCurves()">Effacer tous les tracés</button>
                 </div>
             </details>
-			
+            
             <details>
                 <summary class="section-title" style="cursor: pointer; outline: none;">4. Constantes Physiques</summary>
                 <div class="btn-group">
@@ -317,7 +251,7 @@
     </div>
 
     <footer class="footer-copyright">
-        © Auteur Guillaume PLISSON - Juillet 2026 - Tous droits réservés.
+        © Auteur Guillaume PLISSON - Tous droits réservés.
     </footer>
 
     <script>
@@ -355,8 +289,6 @@
 
         let stateCurve = [];
         let dewCurve = [];
-        
-        // Liste pour stocker les messages d'erreur/avertissement à dessiner sous le graphique
         let warningMessages = [];
 
         function getX(temp, alt) {
@@ -449,16 +381,16 @@
             document.getElementById('show-flight-ceiling').checked = false;
             document.getElementById('ceiling-checkbox-container').classList.remove('active');
             
+            // Si on utilise le bouton effacer, on remet le select à vide
+            document.getElementById('profil-select').value = "";
+            document.getElementById('profil-desc').style.display = 'none';
+
             draw();
         }
 
         function getTempAtAlt(curve, alt) {
             if (curve.length < 2) return null;
-            
-            if (alt < curve[0].alt || alt > curve[curve.length - 1].alt) {
-                return null;
-            }
-
+            if (alt < curve[0].alt || alt > curve[curve.length - 1].alt) return null;
             for (let i = 0; i < curve.length - 1; i++) {
                 let p1 = curve[i];
                 let p2 = curve[i + 1];
@@ -513,7 +445,6 @@
 
                     if (tReal !== null && tDew !== null) {
                         let diff = Math.abs(tReal - tDew);
-                        
                         if (diff <= 0.5) {
                             cloudFound = true;
                             if (!inCloud) {
@@ -538,7 +469,6 @@
                 }
             }
 
-            // Si la case est cochée mais qu'aucun nuage n'a été trouvé
             if (!cloudFound) {
                 warningMessages.push({ text: "Pas de nuages pré-existants", color: '#7f8c8d' });
             }
@@ -573,7 +503,6 @@
             let tempSol = parseFloat(tempSolRaw);
             if (isNaN(altSol) || isNaN(tempSol)) return;
 
-            // 1. Calcul du sommet du thermique (ascendance pure)
             let thermalTopAlt = null;
             for (let alt = altSol; alt <= maxAlt; alt += 10) {
                 let thermicTemp = tempSol - ((alt - altSol) / 100); 
@@ -586,7 +515,6 @@
             }
             if (thermalTopAlt === null) thermalTopAlt = maxAlt;
 
-            // 2. Calcul de la base des nuages convectifs
             let convectiveBaseAlt = null;
             if (dewCurve.length >= 2) {
                 let tDewSol = getTempAtAlt(dewCurve, altSol);
@@ -602,7 +530,6 @@
                 }
             }
 
-            // 3. Calcul de la base des nuages pré-existants
             let preExistingBaseAlt = null;
             if (stateCurve.length >= 2 && dewCurve.length >= 2) {
                 for (let alt = altSol; alt <= maxAlt; alt += 10) {
@@ -615,7 +542,6 @@
                 }
             }
 
-            // 4. Définition du plafond final
             let ceilingAlt = thermalTopAlt;
             if (convectiveBaseAlt !== null && convectiveBaseAlt < ceilingAlt) {
                 ceilingAlt = convectiveBaseAlt;
@@ -624,7 +550,6 @@
                 ceilingAlt = preExistingBaseAlt;
             }
 
-            // Dessin de la zone
             if (ceilingAlt > altSol) {
                 let yBottom = getY(altSol);
                 let yTop = getY(ceilingAlt);
@@ -717,7 +642,6 @@
             let altSolRaw = document.getElementById('alt-sol').value;
             let tempSolRaw = document.getElementById('temp-sol').value;
             
-            // On ne peut rien calculer sans les données de base
             if (altSolRaw === "" || tempSolRaw === "") {
                 warningMessages.push({ text: "Données thermiques (Sol) manquantes", color: '#e67e22' });
                 return;
@@ -730,7 +654,6 @@
                  return;
             }
 
-            // 1. Calcul du sommet du thermique pour vérifier le développement
             let thermalTopAlt = maxAlt;
             for (let alt = altSol; alt <= maxAlt; alt += 10) {
                 let thermicTemp = tempSol - ((alt - altSol) / 100); 
@@ -741,15 +664,13 @@
                 }
             }
 
-            // Récupérer le point de rosée au niveau du sol
             let tDewSol = getTempAtAlt(dewCurve, altSol);
             if (tDewSol === null) return; 
 
             let basePoints = [];
-            let lclAlt = null; // Lifting Condensation Level (Base théorique)
+            let lclAlt = null; 
             let lclTemp = null;
 
-            // 2. Calcul de la base théorique
             for (let alt = altSol; alt <= maxAlt; alt += 10) {
                 let tempDrop = (alt - altSol) / 100;
                 let thermicTemp = tempSol - tempDrop; 
@@ -764,14 +685,11 @@
                 }
             }
 
-            // VERIFICATION : L'ascendance s'arrête-t-elle avant de condenser ?
             if (lclAlt === null || lclAlt >= thermalTopAlt) {
-                // Pas de développement nuageux possible, on enregistre le message
                 warningMessages.push({ text: "Pas de développement de nuages convectifs", color: '#c0392b' });
-                return; // Interrompt la fonction : rien d'autre ne sera tracé.
+                return; 
             }
 
-            // 3. Dessin de la BASE (si demandée et valide)
             if (showConvectiveBase && basePoints.length > 0) {
                 ctx.strokeStyle = '#007acc'; 
                 ctx.lineWidth = 2.5;
@@ -798,14 +716,12 @@
                 ctx.fillText(` Base Cumulus : ${Math.round(lclAlt)} m`, endX + 10, endY + 4); 
             }
 
-            // 4. Dessin du SOMMET (si demandé et valide)
             if (showConvectiveTop) {
                 let topPoints = [];
                 let topIntersectionAlt = null;
                 let topIntersectionTemp = null;
                 
                 let pseudoStartT = lclTemp + (lclAlt / 100) * (0.55 + (lclAlt / 20000));
-
                 topPoints.push({ x: getX(lclTemp, lclAlt), y: getY(lclAlt) });
 
                 for (let alt = lclAlt + 10; alt <= maxAlt; alt += 10) {
@@ -871,7 +787,6 @@
         function drawWarningMessages() {
             if (warningMessages.length === 0) return;
             
-            // Position de départ sous l'axe X
             let msgY = paddingTop + graphHeight + 35; 
             
             warningMessages.forEach(msg => {
@@ -879,16 +794,15 @@
                 ctx.font = 'bold 12px sans-serif';
                 ctx.textAlign = 'left';
                 ctx.fillText(msg.text, paddingLeft + 10, msgY);
-                msgY += 16; // Décale le message suivant vers le bas
+                msgY += 16; 
             });
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            warningMessages = []; // Réinitialise les messages à chaque tracé
+            warningMessages = [];
 
             ctx.save();
-            // Création d'une zone de coupe (clipping) pour que les tracés ne débordent pas du cadre
             ctx.beginPath();
             ctx.rect(paddingLeft, paddingTop, graphWidth, graphHeight);
             ctx.clip();
@@ -899,21 +813,17 @@
             if (state.wet) drawWetAdiabats();
             
             drawGroundLevel(); 
-
             drawFlightCeiling();
-
             drawCondensationZone();
 
             drawUserCurve(stateCurve, '#e65c00', 3, 'Courbe d’État (Air Réel)');
             drawUserCurve(dewCurve, '#007acc', 3, 'Point de Rosée (Humidité)', false);
 
             drawActiveThermic();
-            
             drawConvectiveClouds();
 
             ctx.restore();
 
-            // On dessine les axes ET les messages par-dessus, sans la zone de coupe
             if (state.axes) drawAxes();
             drawWarningMessages();
         }
@@ -1190,10 +1100,111 @@
             if (state.drawMode === 'state') stateCurve = targetArray;
             else dewCurve = targetArray;
 
+            // Si on dessine à la main, on décoche le profil actuel pour éviter la confusion
+            document.getElementById('profil-select').value = "";
+            document.getElementById('profil-desc').style.display = 'none';
+
             draw();
         }
 
-        draw();
+        // ==========================================
+        // MODULE BASE DE DONNÉES JSON (V3.9)
+        // ==========================================
+        let profilsData = [];
+
+        // 1. Récupération du fichier JSON (avec paramètre anti-cache)
+        async function fetchProfils() {
+            try {
+                // Charge le fichier JSON hébergé au même niveau que ce fichier HTML
+                const response = await fetch('profils_meteo.json?t=' + new Date().getTime());
+                if (!response.ok) throw new Error("Fichier introuvable");
+                
+                const data = await response.json();
+                profilsData = data.profils || [];
+                
+                const select = document.getElementById('profil-select');
+                profilsData.forEach(profil => {
+                    const option = document.createElement('option');
+                    option.value = profil.id;
+                    option.textContent = profil.nom;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.warn("Base de données JSON ignorée ou introuvable :", error.message);
+                // Le simulateur démarre vierge et fonctionne manuellement
+            }
+        }
+
+        // 2. Reconstruction des pixels X/Y selon l'échelle physique
+        function chargerCourbesDepuisProfil(profil) {
+            
+            // Nettoyage complet (mais on garde l'ID du sélecteur)
+            stateCurve = [];
+            dewCurve = [];
+            document.getElementById('show-clouds').checked = false;
+            document.getElementById('cloud-checkbox-container').classList.remove('active');
+            document.getElementById('show-convective').checked = false;
+            document.getElementById('convective-checkbox-container').classList.remove('active');
+            document.getElementById('show-convective-top').checked = false;
+            document.getElementById('convective-top-checkbox-container').classList.remove('active');
+            document.getElementById('show-flight-ceiling').checked = false;
+            document.getElementById('ceiling-checkbox-container').classList.remove('active');
+            
+            const reconstruirePoints = (pointsSaves) => {
+                return pointsSaves.map(pt => {
+                    // On recalcule le pixel à partir des vraies valeurs physiques (Température / Altitude)
+                    let a = pt.alt;
+                    let t = pt.temp; 
+                    return {
+                        x: getX(t, a), 
+                        y: getY(a),    
+                        alt: a
+                    };
+                }).sort((a, b) => b.y - a.y); // Tri par altitude pour tracer proprement
+            };
+
+            if (profil.courbe_etat) stateCurve = reconstruirePoints(profil.courbe_etat);
+            if (profil.point_rosee) dewCurve = reconstruirePoints(profil.point_rosee);
+
+            // 3. Remplissage automatique des champs "Sol" d'après le point le plus bas
+            if (stateCurve.length > 0) {
+                let pointSol = stateCurve[stateCurve.length - 1]; 
+                let tempSol = getTempFromXY(pointSol.x, pointSol.y);
+                document.getElementById('alt-sol').value = Math.round(pointSol.alt);
+                document.getElementById('temp-sol').value = tempSol.toFixed(1);
+            }
+
+            draw(); // Rendu visuel
+        }
+
+        // 4. Écouteur sur la liste déroulante
+        document.getElementById('profil-select').addEventListener('change', function(e) {
+            const profilId = e.target.value;
+            const descEl = document.getElementById('profil-desc');
+            
+            if (!profilId) {
+                clearCurves();
+                descEl.style.display = 'none';
+                return;
+            }
+
+            const profil = profilsData.find(p => p.id.toString() === profilId);
+            if (profil) {
+                if (profil.description) {
+                    descEl.textContent = profil.description;
+                    descEl.style.display = 'block';
+                } else {
+                    descEl.style.display = 'none';
+                }
+                chargerCourbesDepuisProfil(profil);
+            }
+        });
+
+        // ==========================================
+        // DÉMARRAGE INITIAL
+        // ==========================================
+        draw();          // Initialise la grille vide
+        fetchProfils();  // Tente de charger le JSON
     </script>
 </body>
 </html>
