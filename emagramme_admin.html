@@ -126,7 +126,7 @@
                 <div style="background: #eafaf1; padding: 10px; border-radius: 6px; border: 1px solid #b2e6c4; margin-bottom: 10px;">
                     <p style="font-size: 0.8rem; color: #155724; margin: 0 0 10px 0;">1. Trace tes courbes d'état et de rosée.<br>2. Clique sur le bouton ci-dessous.<br>3. Copie le code dans <b>profils_meteo.json</b>.</p>
                     <button class="admin-btn" id="btn-generate-json">Générer le profil JSON</button>
-                    <textarea id="json-output" rows="10" style="width: 100%; margin-top: 10px; display: none; font-family: monospace; font-size: 0.75rem; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; padding: 5px;"></textarea>
+                    <textarea id="json-output" rows="15" style="width: 100%; margin-top: 10px; display: none; font-family: monospace; font-size: 0.75rem; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; padding: 5px;"></textarea>
                 </div>
             </details>
 
@@ -1082,31 +1082,35 @@
             const formatCurve = (curve) => {
                 return curve.map(pt => ({
                     alt: Math.round(pt.alt),
-                    temp: parseFloat(getTempFromXY(pt.x, pt.y).toFixed(2)) // Arrondi propre
+                    temp: parseFloat(getTempFromXY(pt.x, pt.y).toFixed(2))
                 }));
             };
 
             const pointsEtat = formatCurve(stateCurve); 
             const pointsRosee = formatCurve(dewCurve); 
 
-            // Construction de l'objet de données
-            const nouveauProfil = {
-                id: Date.now(),
-                nom: nomProfil,
-                description: description || "",
-                courbe_etat: pointsEtat,
-                point_rosee: pointsRosee
+            // Fonction pour formater un tableau de points en JSON compact (sur une ligne)
+            const formatArrayCompact = (arr) => {
+                const lines = arr.map(pt => `        { "alt": ${pt.alt}, "temp": ${pt.temp} }`);
+                return `[\n${lines.join(',\n')}\n      ]`;
             };
+
+            // Construction manuelle de la chaîne JSON pour contrôler l'espacement
+            const jsonString = `    {
+      "id": ${Date.now()},
+      "nom": "${nomProfil}",
+      "description": "${description || ""}",
+      "courbe_etat": ${formatArrayCompact(pointsEtat)},
+      "point_rosee": ${formatArrayCompact(pointsRosee)}
+    },`;
 
             // Affichage dans le Textarea pour copie
             const outputArea = document.getElementById('json-output');
-            
-            // Formatage lisible avec 4 espaces, ajout d'une virgule à la fin pour le coller facilement dans un tableau JSON
-            outputArea.value = JSON.stringify(nouveauProfil, null, 4) + ","; 
+            outputArea.value = jsonString; 
             outputArea.style.display = 'block';
             
             outputArea.select();
-            alert("✅ JSON généré avec succès !\n\nCopie le contenu de la zone de texte apparue et colle-le dans ton fichier profils_meteo.json entre les crochets [ ].");
+            alert("✅ JSON généré avec succès !\n\nCopie le contenu de la zone de texte apparue et colle-le dans ton fichier profils_meteo.json.");
         });
 
         // Démarrage initial : vide par défaut
