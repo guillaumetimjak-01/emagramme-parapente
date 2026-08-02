@@ -1,0 +1,1116 @@
+<!--
+  Copyright (c) 2026 Guillaume PLISSON. Tous droits réservés.
+  
+  Outil d'administration local : Générateur JSON pour Simulateur Émagramme
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="https://guillaumetimjak-01.github.io/emagramme-parapente/favicon.png">
+    <title>ADMIN - Générateur JSON Émagramme</title>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --panel-bg: #ffffff;
+            --text-color: #212529;
+            --primary-color: #0d6efd;
+            --admin-color: #28a745;
+            --dry-color: #dc3545;
+            --wet-color: #198754;
+            --mix-color: #007acc;
+            --state-color: #e65c00;
+            --dew-color: #007acc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin-bottom: 5px; color: #1a252f; font-size: 1.8rem; }
+        .subtitle { margin-bottom: 20px; color: #dc3545; font-size: 0.95rem; text-align: center; font-weight: bold; }
+
+        .container {
+            display: flex; gap: 20px; background: var(--panel-bg);
+            padding: 20px; border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            max-width: 1400px; width: 100%;
+        }
+
+        .control-panel {
+            flex: 1; display: flex; flex-direction: column;
+            gap: 15px; min-width: 300px; max-width: 350px;
+        }
+
+        .graph-area {
+            position: relative; background: #ffffff;
+            border: 2px solid #cfd8dc; border-radius: 8px;
+            cursor: crosshair; overflow: hidden;
+        }
+
+        .section-title {
+            font-weight: 600; font-size: 1rem; margin-bottom: 8px;
+            border-bottom: 2px solid #edf2f7; padding-bottom: 4px; color: #34495e;
+        }
+
+        .section-admin { color: var(--admin-color); border-bottom-color: var(--admin-color); }
+
+        .btn-group { display: flex; flex-direction: column; gap: 8px; }
+        .toggle-btn {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+            background: #f1f3f5; border: 1px solid #ced4da; border-radius: 6px;
+            cursor: pointer; font-size: 0.9rem; text-align: left; transition: all 0.2s ease;
+        }
+        .toggle-btn:hover { background: #e9ecef; }
+        .toggle-btn.active { background: #e7f1ff; border-color: #b6d4fe; font-weight: 500; }
+        .toggle-btn .indicator { width: 12px; height: 12px; border-radius: 50%; background: #dee2e6; display: inline-block; }
+        .toggle-btn.active .indicator { background: var(--primary-color); }
+
+        .radio-group { display: flex; gap: 8px; }
+        .radio-btn {
+            flex: 1; padding: 8px; text-align: center; background: #f1f3f5;
+            border: 1px solid #ced4da; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
+        }
+        .radio-btn.active { background: #343a40; color: #fff; border-color: #343a40; }
+
+        .input-group {
+            display: flex; align-items: center; gap: 10px; background: #f8f9fa;
+            padding: 10px; border: 1px solid #ced4da; border-radius: 6px;
+        }
+        .input-group label { font-size: 0.85rem; font-weight: 500; color: #495057; flex: 1; }
+        .input-group input {
+            width: 70px; padding: 6px; border: 1px solid #ced4da; border-radius: 4px;
+            font-weight: bold; text-align: center;
+        }
+
+        .checkbox-group {
+            display: flex; align-items: center; gap: 10px; background: #f1f3f5;
+            padding: 10px 12px; border: 1px solid #ced4da; border-radius: 6px;
+            cursor: pointer; user-select: none; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease;
+        }
+        .checkbox-group:hover { background: #e9ecef; }
+        .checkbox-group.active { background: #e2f0fe; border-color: #b6d4fe; color: #0b5ed7; }
+        .checkbox-group input { cursor: pointer; width: 16px; height: 16px; }
+
+        .clear-btn { padding: 8px; background: #fff0f1; border: 1px solid #ffa8a8; color: #e03131; border-radius: 6px; cursor: pointer; font-weight: 500; }
+        .clear-btn:hover { background: #ffe3e3; }
+        
+        .admin-btn { padding: 12px; background: var(--admin-color); border: none; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; width: 100%; transition: 0.2s; }
+        .admin-btn:hover { background: #218838; }
+
+        .footer-copyright {
+            margin-top: 30px; font-size: 0.8rem; color: #88929a; text-align: center;
+            border-top: 1px solid #e2e8f0; padding-top: 15px; width: 100%; max-width: 1400px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Simulateur d'Émagramme - OUTIL ADMIN</h1>
+    <div class="subtitle">Générateur local de base de données (JSON) - Usage strictement personnel</div>
+
+    <div class="container">
+        <!-- Panneau de commandes gauche -->
+        <div class="control-panel">
+            
+            <!-- SECTION ADMIN : EXPORT JSON -->
+            <details open>
+                <summary class="section-title section-admin" style="cursor: pointer; outline: none;">0. Export Base de données (JSON)</summary>
+                <div style="background: #eafaf1; padding: 10px; border-radius: 6px; border: 1px solid #b2e6c4; margin-bottom: 10px;">
+                    <p style="font-size: 0.8rem; color: #155724; margin: 0 0 10px 0;">1. Trace tes courbes d'état et de rosée.<br>2. Clique sur le bouton ci-dessous.<br>3. Copie le code dans <b>profils_meteo.json</b>.</p>
+                    <button class="admin-btn" id="btn-generate-json">Générer le profil JSON</button>
+                    <textarea id="json-output" rows="10" style="width: 100%; margin-top: 10px; display: none; font-family: monospace; font-size: 0.75rem; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; padding: 5px;"></textarea>
+                </div>
+            </details>
+
+            <details>
+                <summary class="section-title" style="cursor: pointer; outline: none;">1. Structure du Graphique</summary>
+                <div class="btn-group">
+                    <button class="toggle-btn" id="btn-axes" onclick="toggleElement('axes')">
+                        <span class="indicator"></span> Axes & Cadre (0-5000m / -10 à +40°C)
+                    </button>
+                    <button class="toggle-btn" id="btn-grid" onclick="toggleElement('grid')">
+                        <span class="indicator"></span> Grille de légende
+                    </button>
+                </div>
+            </details>
+
+            <details>
+                <summary class="section-title" style="cursor: pointer; outline: none;">2. Simulation Thermique Actif</summary>
+                <div class="input-group" style="margin-bottom: 8px;">
+                    <label for="alt-sol">Altitude Sol :</label>
+                    <input type="number" id="alt-sol" placeholder="--" min="0" max="5000" step="50" oninput="draw()">
+                    <span style="font-size:0.85rem; font-weight:bold;">m</span>
+                </div>
+                <div class="input-group">
+                    <label for="temp-sol">T° au sol :</label>
+                    <input type="number" id="temp-sol" placeholder="--" min="-10" max="40" step="0.5" oninput="draw()">
+                    <span style="font-size:0.85rem; font-weight:bold;">°C</span>
+                </div>
+            </details>
+
+            <details open>
+                <summary class="section-title" style="cursor: pointer; outline: none;">3. Valeurs de Températures (Clic Souris)</summary>
+                <div class="radio-group">
+                    <button class="radio-btn active" id="mode-state" onclick="setDrawMode('state')">Courbe d'État (Réel)</button>
+                    <button class="radio-btn" id="mode-dew" onclick="setDrawMode('dew')">Point de Rosée (Continu)</button>
+                </div>
+                <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 5px;">
+                    <button class="clear-btn" onclick="clearCurves()">Effacer les tracés</button>
+                </div>
+            </details>
+            
+            <details>
+                <summary class="section-title" style="cursor: pointer; outline: none;">4. Constantes Physiques</summary>
+                <div class="btn-group">
+                    <button class="toggle-btn" id="btn-dry" onclick="toggleElement('dry')">
+                        <span class="indicator"></span> Adiabatiques Sèches (-1°C / 100m)
+                    </button>
+                    <button class="toggle-btn" id="btn-wet" onclick="toggleElement('wet')">
+                        <span class="indicator"></span> Adiabatiques Humides (~ -0.6°C / 100m)
+                    </button>
+                    <button class="toggle-btn" id="btn-mixing" onclick="toggleElement('mixing')">
+                        <span class="indicator"></span> Lignes d'Iso-Rapport de mélange
+                    </button>
+                </div>
+            </details>
+
+            <details>
+                <summary class="section-title" style="cursor: pointer; outline: none;">5. Validation des Éléments</summary>
+                <div class="checkbox-group" id="cloud-checkbox-container" onclick="toggleCloudDisplay(event)">
+                    <input type="checkbox" id="show-clouds" onchange="draw()">
+                    <label for="show-clouds" style="cursor: pointer; margin-left: 5px;">Afficher les Nuages Pré-existants</label>
+                </div>
+                <div class="checkbox-group" id="convective-checkbox-container" onclick="toggleConvectiveDisplay(event)" style="margin-top: 8px;">
+                    <input type="checkbox" id="show-convective" onchange="draw()">
+                    <label for="show-convective" style="cursor: pointer; margin-left: 5px;">Base des nuages convectifs</label>
+                </div>
+                <div class="checkbox-group" id="convective-top-checkbox-container" onclick="toggleConvectiveTopDisplay(event)" style="margin-top: 8px;">
+                    <input type="checkbox" id="show-convective-top" onchange="draw()">
+                    <label for="show-convective-top" style="cursor: pointer; margin-left: 5px;">Sommet des nuages convectifs</label>
+                </div>
+                <div class="checkbox-group" id="ceiling-checkbox-container" onclick="toggleFlightCeilingDisplay(event)" style="margin-top: 8px;">
+                    <input type="checkbox" id="show-flight-ceiling" onchange="draw()">
+                    <label for="show-flight-ceiling" style="cursor: pointer; margin-left: 5px;">Plafond de vol</label>
+                </div>
+            </details>
+        </div>
+
+        <!-- Zone Graphique Émagramme Élargie pour le Skew 45° -->
+        <div class="graph-area">
+            <canvas id="emagramCanvas" width="1000" height="600"></canvas>
+        </div>
+    </div>
+
+    <footer class="footer-copyright">
+        © Auteur Guillaume PLISSON - Tous droits réservés. Outil local.
+    </footer>
+
+    <script>
+        // ==========================================
+        // 1. MOTEUR GRAPHIQUE (IDENTIQUE V3.8)
+        // ==========================================
+        const canvas = document.getElementById('emagramCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const minTemp = -10;
+        const maxTemp = 40;
+        const minAlt = 0;
+        const maxAlt = 5000;
+
+        const paddingLeft = 80; 
+        const paddingRight = 170; 
+        const paddingTop = 30;
+        const paddingBottom = 60;
+
+        const graphWidth = canvas.width - paddingLeft - paddingRight;
+        const graphHeight = canvas.height - paddingTop - paddingBottom;
+
+        const SKEW_ANGLE_RAD = 45 * Math.PI / 180; 
+        const SKEW_FACTOR = Math.tan(SKEW_ANGLE_RAD); 
+
+        function altToHpa(alt) {
+            return Math.round(1013.25 * Math.pow((1 - 0.0000225577 * alt), 5.2559));
+        }
+
+        let state = {
+            axes: false,
+            grid: false,
+            dry: false,
+            wet: false,
+            mixing: false,
+            drawMode: 'state'
+        };
+
+        let stateCurve = [];
+        let dewCurve = [];
+        let warningMessages = [];
+
+        function getX(temp, alt) {
+            let xBase = paddingLeft + ((temp - minTemp) / (maxTemp - minTemp)) * graphWidth;
+            let hPixels = getY(0) - getY(alt);
+            return xBase + hPixels * SKEW_FACTOR;
+        }
+
+        function getY(alt) {
+            return paddingTop + graphHeight - ((alt - minAlt) / (maxAlt - minAlt)) * graphHeight;
+        }
+
+        function getTempFromXY(pixelX, pixelY) {
+            let hPixels = getY(0) - pixelY;
+            let xBase = pixelX - hPixels * SKEW_FACTOR;
+            return minTemp + ((xBase - paddingLeft) / graphWidth) * (maxTemp - minTemp);
+        }
+
+        function getAltFromY(y) {
+            return minAlt + ((paddingTop + graphHeight - y) / graphHeight) * (maxAlt - minAlt);
+        }
+
+        function toggleElement(element) {
+            state[element] = !state[element];
+            document.getElementById(`btn-${element}`).classList.toggle('active', state[element]);
+            draw();
+        }
+
+        function setDrawMode(mode) {
+            state.drawMode = mode;
+            document.getElementById('mode-state').classList.toggle('active', mode === 'state');
+            document.getElementById('mode-dew').classList.toggle('active', mode === 'dew');
+        }
+
+        function toggleCloudDisplay(event) {
+            const checkbox = document.getElementById('show-clouds');
+            const container = document.getElementById('cloud-checkbox-container');
+            if (event.target !== checkbox && event.target.tagName !== 'LABEL') {
+                checkbox.checked = !checkbox.checked;
+            }
+            container.classList.toggle('active', checkbox.checked);
+            draw();
+        }
+
+        function toggleConvectiveDisplay(event) {
+            const checkbox = document.getElementById('show-convective');
+            const container = document.getElementById('convective-checkbox-container');
+            if (event.target !== checkbox && event.target.tagName !== 'LABEL') {
+                checkbox.checked = !checkbox.checked;
+            }
+            container.classList.toggle('active', checkbox.checked);
+            draw();
+        }
+
+        function toggleConvectiveTopDisplay(event) {
+            const checkbox = document.getElementById('show-convective-top');
+            const container = document.getElementById('convective-top-checkbox-container');
+            if (event.target !== checkbox && event.target.tagName !== 'LABEL') {
+                checkbox.checked = !checkbox.checked;
+            }
+            container.classList.toggle('active', checkbox.checked);
+            draw();
+        }
+
+        function toggleFlightCeilingDisplay(event) {
+            const checkbox = document.getElementById('show-flight-ceiling');
+            const container = document.getElementById('ceiling-checkbox-container');
+            if (event.target !== checkbox && event.target.tagName !== 'LABEL') {
+                checkbox.checked = !checkbox.checked;
+            }
+            container.classList.toggle('active', checkbox.checked);
+            draw();
+        }
+
+        function clearCurves() {
+            stateCurve = [];
+            dewCurve = [];
+            document.getElementById('temp-sol').value = "";
+            document.getElementById('alt-sol').value = ""; 
+            
+            document.getElementById('show-clouds').checked = false;
+            document.getElementById('cloud-checkbox-container').classList.remove('active');
+            
+            document.getElementById('show-convective').checked = false;
+            document.getElementById('convective-checkbox-container').classList.remove('active');
+
+            document.getElementById('show-convective-top').checked = false;
+            document.getElementById('convective-top-checkbox-container').classList.remove('active');
+
+            document.getElementById('show-flight-ceiling').checked = false;
+            document.getElementById('ceiling-checkbox-container').classList.remove('active');
+            
+            // Masquer la zone JSON au nettoyage
+            document.getElementById('json-output').style.display = 'none';
+
+            draw();
+        }
+
+        function getTempAtAlt(curve, alt) {
+            if (curve.length < 2) return null;
+            if (alt < curve[0].alt || alt > curve[curve.length - 1].alt) return null;
+            for (let i = 0; i < curve.length - 1; i++) {
+                let p1 = curve[i];
+                let p2 = curve[i + 1];
+                if (alt >= p1.alt && alt <= p2.alt) {
+                    let ratio = (alt - p1.alt) / (p2.alt - p1.alt);
+                    let t1 = getTempFromXY(p1.x, p1.y);
+                    let t2 = getTempFromXY(p2.x, p2.y);
+                    return t1 + ratio * (t2 - t1);
+                }
+            }
+            return null;
+        }
+
+        function drawGroundLevel() {
+            let altSolRaw = document.getElementById('alt-sol').value;
+            if (altSolRaw === "") return;
+
+            let altSol = parseFloat(altSolRaw);
+            if (isNaN(altSol) || altSol < 0 || altSol > maxAlt) return;
+
+            let yGround = getY(altSol);
+            let ySeaLevel = getY(0);
+
+            ctx.fillStyle = 'rgba(160, 160, 160, 0.5)'; 
+            ctx.fillRect(paddingLeft, yGround, graphWidth, ySeaLevel - yGround);
+
+            ctx.strokeStyle = '#8B4513'; 
+            ctx.lineWidth = 3; 
+            ctx.beginPath();
+            ctx.moveTo(paddingLeft, yGround);
+            ctx.lineTo(paddingLeft + graphWidth, yGround);
+            ctx.stroke();
+
+            ctx.fillStyle = '#8B4513';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(`SOL (${altSol} m)`, paddingLeft + 10, yGround - 8);
+        }
+
+        function drawCondensationZone() {
+            const showClouds = document.getElementById('show-clouds').checked;
+            if (!showClouds) return;
+
+            let cloudFound = false;
+            let inCloud = false;
+            let cloudStartAlt = 0;
+
+            if (stateCurve.length >= 2 && dewCurve.length >= 2) {
+                for (let alt = 0; alt <= maxAlt; alt += 10) {
+                    let tReal = getTempAtAlt(stateCurve, alt);
+                    let tDew = getTempAtAlt(dewCurve, alt);
+
+                    if (tReal !== null && tDew !== null) {
+                        let diff = Math.abs(tReal - tDew);
+                        if (diff <= 0.5) {
+                            cloudFound = true;
+                            if (!inCloud) {
+                                inCloud = true;
+                                cloudStartAlt = alt;
+                            }
+                        } else {
+                            if (inCloud) {
+                                drawCloudSlice(cloudStartAlt, alt);
+                                inCloud = false;
+                            }
+                        }
+                    } else {
+                        if (inCloud) {
+                            drawCloudSlice(cloudStartAlt, alt);
+                            inCloud = false;
+                        }
+                    }
+                }
+                if (inCloud) {
+                    drawCloudSlice(cloudStartAlt, maxAlt);
+                }
+            }
+
+            if (!cloudFound) {
+                warningMessages.push({ text: "Pas de nuages pré-existants", color: '#7f8c8d' });
+            }
+        }
+
+        function drawCloudSlice(startAlt, endAlt) {
+            let yStart = getY(startAlt);
+            let yEnd = getY(endAlt);
+            let sliceHeight = yStart - yEnd;
+
+            let cloudWidth = graphWidth * 0.35; 
+            let startX = paddingLeft + graphWidth - cloudWidth;
+
+            ctx.fillStyle = 'rgba(215, 220, 225, 0.6)';
+            ctx.fillRect(startX, yEnd, cloudWidth, sliceHeight);
+
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'italic bold 10px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText("Couche nuageuse pré-existante", paddingLeft + graphWidth - 10, yStart - 10);
+        }
+
+        function drawFlightCeiling() {
+            const showCeiling = document.getElementById('show-flight-ceiling').checked;
+            if (!showCeiling) return;
+
+            let altSolRaw = document.getElementById('alt-sol').value;
+            let tempSolRaw = document.getElementById('temp-sol').value;
+            if (altSolRaw === "" || tempSolRaw === "") return;
+
+            let altSol = parseFloat(altSolRaw);
+            let tempSol = parseFloat(tempSolRaw);
+            if (isNaN(altSol) || isNaN(tempSol)) return;
+
+            let thermalTopAlt = null;
+            for (let alt = altSol; alt <= maxAlt; alt += 10) {
+                let thermicTemp = tempSol - ((alt - altSol) / 100); 
+                let realTemp = getTempAtAlt(stateCurve, alt);
+
+                if (realTemp !== null && thermicTemp <= realTemp) {
+                    thermalTopAlt = alt;
+                    break;
+                }
+            }
+            if (thermalTopAlt === null) thermalTopAlt = maxAlt;
+
+            let convectiveBaseAlt = null;
+            if (dewCurve.length >= 2) {
+                let tDewSol = getTempAtAlt(dewCurve, altSol);
+                if (tDewSol !== null) {
+                    for (let alt = altSol; alt <= maxAlt; alt += 10) {
+                        let thermicTemp = tempSol - ((alt - altSol) / 100);
+                        let mixingTemp = tDewSol + ((alt - altSol) / 1100);
+                        if (mixingTemp >= thermicTemp) {
+                            convectiveBaseAlt = alt;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            let preExistingBaseAlt = null;
+            if (stateCurve.length >= 2 && dewCurve.length >= 2) {
+                for (let alt = altSol; alt <= maxAlt; alt += 10) {
+                    let tReal = getTempAtAlt(stateCurve, alt);
+                    let tDew = getTempAtAlt(dewCurve, alt);
+                    if (tReal !== null && tDew !== null && Math.abs(tReal - tDew) <= 0.5) {
+                        preExistingBaseAlt = alt;
+                        break;
+                    }
+                }
+            }
+
+            let ceilingAlt = thermalTopAlt;
+            if (convectiveBaseAlt !== null && convectiveBaseAlt < ceilingAlt) {
+                ceilingAlt = convectiveBaseAlt;
+            }
+            if (preExistingBaseAlt !== null && preExistingBaseAlt < ceilingAlt) {
+                ceilingAlt = preExistingBaseAlt;
+            }
+
+            if (ceilingAlt > altSol) {
+                let yBottom = getY(altSol);
+                let yTop = getY(ceilingAlt);
+                let height = yBottom - yTop;
+                
+                let zoneWidth = graphWidth * 0.30;
+                let startX = paddingLeft + graphWidth * 0.35; 
+
+                ctx.fillStyle = 'rgba(255, 235, 59, 0.25)'; 
+                ctx.fillRect(startX, yTop, zoneWidth, height);
+
+                ctx.fillStyle = '#827717';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Plafond de vol (${Math.round(ceilingAlt)} m)`, startX + (zoneWidth / 2), yTop - 8);
+            }
+        }
+
+        function drawActiveThermic() {
+            let startTempRaw = document.getElementById('temp-sol').value;
+            if (startTempRaw === "") return;
+
+            let startTemp = parseFloat(startTempRaw);
+            if (isNaN(startTemp)) return;
+
+            let altSolRaw = document.getElementById('alt-sol').value;
+            let baseAlt = (altSolRaw !== "" && !isNaN(parseFloat(altSolRaw))) ? parseFloat(altSolRaw) : 0;
+
+            let points = [];
+            let intersected = false;
+            let intersectionAlt = 0;
+            let intersectionTemp = 0;
+
+            for (let alt = baseAlt; alt <= maxAlt; alt += 10) {
+                let tempDrop = (alt - baseAlt) / 100; 
+                let thermicTemp = startTemp - tempDrop; 
+                let realTemp = getTempAtAlt(stateCurve, alt);
+
+                if (realTemp !== null) {
+                    if (thermicTemp <= realTemp) {
+                        intersected = true;
+                        intersectionAlt = alt;
+                        intersectionTemp = thermicTemp;
+                        points.push({ x: getX(thermicTemp, alt), y: getY(alt) });
+                        break;
+                    }
+                }
+                points.push({ x: getX(thermicTemp, alt), y: getY(alt) });
+            }
+
+            if (points.length > 0) {
+                ctx.strokeStyle = '#27ae60'; 
+                ctx.lineWidth = 3.5;
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i].x, points[i].y);
+                }
+                ctx.stroke();
+
+                if (intersected) {
+                    let endX = getX(intersectionTemp, intersectionAlt);
+                    let endY = getY(intersectionAlt);
+
+                    ctx.fillStyle = '#d32f2f';
+                    ctx.beginPath();
+                    ctx.arc(endX, endY, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#27ae60';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(` Sommet Ascendance : ${Math.round(intersectionAlt)} m (${intersectionTemp.toFixed(1)}°C)`, endX + 8, endY + 4);
+                } else if (stateCurve.length >= 2) {
+                    let lastPt = points[points.length - 1];
+                    ctx.fillStyle = '#27ae60';
+                    ctx.font = 'italic bold 11px sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(` Bulle Thermique`, lastPt.x + 8, lastPt.y + 4);
+                }
+            }
+        }
+
+        function drawConvectiveClouds() {
+            const showConvectiveBase = document.getElementById('show-convective').checked;
+            const showConvectiveTop = document.getElementById('show-convective-top').checked;
+
+            if (!showConvectiveBase && !showConvectiveTop) return;
+
+            let altSolRaw = document.getElementById('alt-sol').value;
+            let tempSolRaw = document.getElementById('temp-sol').value;
+            
+            if (altSolRaw === "" || tempSolRaw === "") {
+                warningMessages.push({ text: "Données thermiques (Sol) manquantes", color: '#e67e22' });
+                return;
+            }
+
+            let altSol = parseFloat(altSolRaw);
+            let tempSol = parseFloat(tempSolRaw);
+            if (isNaN(altSol) || isNaN(tempSol) || dewCurve.length < 2 || stateCurve.length < 2) {
+                 warningMessages.push({ text: "Courbes d'état et point de rosée incomplètes", color: '#e67e22' });
+                 return;
+            }
+
+            let thermalTopAlt = maxAlt;
+            for (let alt = altSol; alt <= maxAlt; alt += 10) {
+                let thermicTemp = tempSol - ((alt - altSol) / 100); 
+                let realTemp = getTempAtAlt(stateCurve, alt);
+                if (realTemp !== null && thermicTemp <= realTemp) {
+                    thermalTopAlt = alt;
+                    break;
+                }
+            }
+
+            let tDewSol = getTempAtAlt(dewCurve, altSol);
+            if (tDewSol === null) return; 
+
+            let basePoints = [];
+            let lclAlt = null; 
+            let lclTemp = null;
+
+            for (let alt = altSol; alt <= maxAlt; alt += 10) {
+                let tempDrop = (alt - altSol) / 100;
+                let thermicTemp = tempSol - tempDrop; 
+                let mixingTemp = tDewSol + ((alt - altSol) / 1100); 
+
+                basePoints.push({ x: getX(mixingTemp, alt), y: getY(alt) });
+
+                if (mixingTemp >= thermicTemp) {
+                    lclAlt = alt;
+                    lclTemp = mixingTemp;
+                    break;
+                }
+            }
+
+            if (lclAlt === null || lclAlt >= thermalTopAlt) {
+                warningMessages.push({ text: "Pas de développement de nuages convectifs", color: '#c0392b' });
+                return; 
+            }
+
+            if (showConvectiveBase && basePoints.length > 0) {
+                ctx.strokeStyle = '#007acc'; 
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([5, 4]); 
+                ctx.beginPath();
+                ctx.moveTo(basePoints[0].x, basePoints[0].y);
+                for (let i = 1; i < basePoints.length; i++) {
+                    ctx.lineTo(basePoints[i].x, basePoints[i].y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]); 
+
+                let endX = getX(lclTemp, lclAlt);
+                let endY = getY(lclAlt);
+
+                ctx.fillStyle = '#007acc';
+                ctx.beginPath();
+                ctx.arc(endX, endY, 5, 0, 2 * Math.PI);
+                ctx.fill();
+
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'left'; 
+                ctx.fillText(` Base Cumulus : ${Math.round(lclAlt)} m`, endX + 10, endY + 4); 
+            }
+
+            if (showConvectiveTop) {
+                let topPoints = [];
+                let topIntersectionAlt = null;
+                let topIntersectionTemp = null;
+                
+                let pseudoStartT = lclTemp + (lclAlt / 100) * (0.55 + (lclAlt / 20000));
+                topPoints.push({ x: getX(lclTemp, lclAlt), y: getY(lclAlt) });
+
+                for (let alt = lclAlt + 10; alt <= maxAlt; alt += 10) {
+                    let lapseRate = 0.55 + (alt / 20000); 
+                    let currentTemp = pseudoStartT - (alt / 100) * lapseRate;
+                    
+                    let realTemp = getTempAtAlt(stateCurve, alt);
+                    topPoints.push({ x: getX(currentTemp, alt), y: getY(alt) });
+
+                    if (realTemp !== null && currentTemp <= realTemp) {
+                        topIntersectionAlt = alt;
+                        topIntersectionTemp = currentTemp;
+                        break;
+                    }
+                }
+
+                if (topPoints.length > 1) {
+                    ctx.strokeStyle = '#27ae60';
+                    ctx.lineWidth = 3.5;
+                    ctx.setLineDash([6, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(topPoints[0].x, topPoints[0].y);
+                    for (let i = 1; i < topPoints.length; i++) {
+                        ctx.lineTo(topPoints[i].x, topPoints[i].y);
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    let endX = getX(topIntersectionTemp || currentTemp, topIntersectionAlt || maxAlt);
+                    let endY = getY(topIntersectionAlt || maxAlt);
+
+                    ctx.fillStyle = '#d32f2f';
+                    ctx.beginPath();
+                    ctx.arc(endX, endY, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#27ae60';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'left';
+                    if (topIntersectionAlt !== null) {
+                        ctx.fillText(` Sommet Cumulus : ${Math.round(topIntersectionAlt)} m`, endX + 10, endY + 4);
+                    } else {
+                        ctx.fillText(` Sommet > ${maxAlt} m`, endX + 10, endY + 4);
+                    }
+                    
+                    let yBase = getY(lclAlt);
+                    let finalTopAlt = topIntersectionAlt !== null ? topIntersectionAlt : maxAlt;
+                    let yTop = getY(finalTopAlt);
+                    let sliceHeight = yBase - yTop; 
+                    let cloudWidth = graphWidth * 0.35;
+                    
+                    ctx.fillStyle = 'rgba(170, 180, 185, 0.6)'; 
+                    ctx.fillRect(paddingLeft, yTop, cloudWidth, sliceHeight);
+                    
+                    ctx.fillStyle = '#2c3e50';
+                    ctx.font = 'italic bold 10px sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.fillText("Couche convective", paddingLeft + 10, yBase - 10);
+                }
+            }
+        }
+
+        function drawWarningMessages() {
+            if (warningMessages.length === 0) return;
+            
+            let msgY = paddingTop + graphHeight + 35; 
+            
+            warningMessages.forEach(msg => {
+                ctx.fillStyle = msg.color;
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText(msg.text, paddingLeft + 10, msgY);
+                msgY += 16; 
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            warningMessages = [];
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(paddingLeft, paddingTop, graphWidth, graphHeight);
+            ctx.clip();
+
+            if (state.grid) drawGrid();
+            if (state.mixing) drawMixingRatioLines();
+            if (state.dry) drawDryAdiabats();
+            if (state.wet) drawWetAdiabats();
+            
+            drawGroundLevel(); 
+            drawFlightCeiling();
+            drawCondensationZone();
+
+            drawUserCurve(stateCurve, '#e65c00', 3, 'Courbe d’État (Air Réel)');
+            drawUserCurve(dewCurve, '#007acc', 3, 'Point de Rosée (Humidité)', false);
+
+            drawActiveThermic();
+            drawConvectiveClouds();
+
+            ctx.restore();
+
+            if (state.axes) drawAxes();
+            drawWarningMessages();
+        }
+
+        function drawAxes() {
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = '12px sans-serif';
+
+            ctx.beginPath();
+            ctx.moveTo(paddingLeft, paddingTop);
+            ctx.lineTo(paddingLeft, paddingTop + graphHeight);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(paddingLeft, paddingTop + graphHeight);
+            ctx.lineTo(paddingLeft + graphWidth, paddingTop + graphHeight);
+            ctx.stroke();
+
+            ctx.save();
+            ctx.translate(20, paddingTop + graphHeight/2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText("Altitude (m) / Pression (hPa)", 0, 0);
+            ctx.restore();
+
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText("Température (°C)", paddingLeft + graphWidth/2, paddingTop + graphHeight + 48);
+
+            ctx.textAlign = 'right';
+            for (let alt = minAlt; alt <= maxAlt; alt += 500) {
+                let y = getY(alt);
+                let hpa = altToHpa(alt);
+
+                ctx.strokeStyle = '#2c3e50';
+                ctx.beginPath();
+                ctx.moveTo(paddingLeft - 5, y);
+                ctx.lineTo(paddingLeft, y);
+                ctx.stroke();
+
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.fillText(alt + " m", paddingLeft - 10, y - 2);
+
+                ctx.fillStyle = '#7f8c8d';
+                ctx.font = 'normal 9.5px sans-serif';
+                ctx.fillText(hpa + " hPa", paddingLeft - 10, y + 10);
+            }
+
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 11px sans-serif';
+            
+            for (let t = minTemp - 20; t <= maxTemp + 20; t += 5) {
+                let x = getX(t, 0);
+                if(x >= paddingLeft && x <= paddingLeft + graphWidth) {
+                    ctx.strokeStyle = '#2c3e50';
+                    ctx.beginPath();
+                    ctx.moveTo(x, paddingTop + graphHeight);
+                    ctx.lineTo(x, paddingTop + graphHeight + 5);
+                    ctx.stroke();
+                    ctx.fillText(t + "°C", x, paddingTop + graphHeight + 20);
+                }
+            }
+
+            drawCloudLayerLegend();
+        }
+
+        function drawCloudLayerLegend() {
+            let rightEdge = paddingLeft + graphWidth;
+            let barWidth = 8; 
+            let textX = rightEdge + barWidth + 10;
+
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            let y0 = getY(0);
+            let y3000 = getY(3000);
+            
+            ctx.fillStyle = 'rgba(173, 216, 230, 0.7)'; 
+            ctx.fillRect(rightEdge, y3000, barWidth, y0 - y3000);
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText("Basse couche", textX, (y0 + y3000)/2 - 7);
+            ctx.font = 'normal 11px sans-serif';
+            ctx.fillStyle = '#7f8c8d';
+            ctx.fillText("(0m à 3000m)", textX, (y0 + y3000)/2 + 9);
+
+            let yMax = getY(maxAlt);
+            
+            ctx.fillStyle = 'rgba(100, 149, 237, 0.7)'; 
+            ctx.fillRect(rightEdge, yMax, barWidth, y3000 - yMax);
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText("Couche intermédiaire", textX, (y3000 + yMax)/2 - 14);
+            ctx.font = 'italic bold 11px sans-serif';
+            ctx.fillStyle = '#198754'; 
+            ctx.fillText("Alto", textX, (y3000 + yMax)/2 + 2);
+            ctx.font = 'normal 11px sans-serif';
+            ctx.fillStyle = '#7f8c8d';
+            ctx.fillText("(3000m à 6000m)", textX, (y3000 + yMax)/2 + 16);
+
+            ctx.fillStyle = '#7f8c8d';
+            ctx.font = 'italic bold 11px sans-serif';
+            ctx.fillText("↑ Couche supérieure (Cirro) : 6000m à 9000m", rightEdge - 60, paddingTop - 12);
+            
+            ctx.textBaseline = 'alphabetic';
+        }
+
+        function drawGrid() {
+            ctx.lineWidth = 2;
+            for (let t = minTemp - 60; t <= maxTemp + 60; t += 5) {
+                let xStart = getX(t, 0);
+                let xEnd = getX(t, maxAlt);
+
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.beginPath();
+                ctx.moveTo(xStart, getY(0));
+                ctx.lineTo(xEnd, getY(maxAlt));
+                ctx.stroke();
+            }
+
+            ctx.lineWidth = 1;
+            for (let alt = minAlt; alt <= maxAlt; alt += 500) {
+                let y = getY(alt);
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.beginPath();
+                ctx.moveTo(paddingLeft, y);
+                ctx.lineTo(paddingLeft + graphWidth, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawDryAdiabats() {
+            ctx.strokeStyle = 'rgba(220, 53, 69, 0.4)'; 
+            ctx.lineWidth = 2.5; 
+            for (let startT = minTemp - 60; startT <= maxTemp + 60; startT += 5) {
+                ctx.beginPath();
+                let started = false;
+                for (let alt = 0; alt <= maxAlt; alt += 200) {
+                    let currentT = startT - (alt / 100);
+                    let x = getX(currentT, alt);
+                    let y = getY(alt);
+
+                    if (x >= paddingLeft && x <= paddingLeft + graphWidth) {
+                        if (!started) {
+                            ctx.moveTo(x, y);
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+                ctx.stroke();
+            }
+        }
+
+        function drawWetAdiabats() {
+            ctx.strokeStyle = 'rgba(25, 135, 84, 0.45)'; 
+            ctx.lineWidth = 2; 
+            ctx.setLineDash([4, 4]); 
+            
+            for (let startT = minTemp - 60; startT <= maxTemp + 60; startT += 5) {
+                ctx.beginPath();
+                let started = false;
+                for (let alt = 0; alt <= maxAlt; alt += 200) {
+                    let lapseRate = 0.55 + (alt / 20000); 
+                    let currentT = startT - (alt / 100) * lapseRate;
+                    let x = getX(currentT, alt);
+                    let y = getY(alt);
+
+                    if (x >= paddingLeft && x <= paddingLeft + graphWidth) {
+                        if (!started) {
+                            ctx.moveTo(x, y);
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+                ctx.stroke();
+            }
+            ctx.setLineDash([]); 
+        }
+
+        function drawMixingRatioLines() {
+            ctx.strokeStyle = 'rgba(0, 122, 204, 0.45)'; 
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 5]); 
+
+            for (let startT = minTemp - 60; startT <= maxTemp + 60; startT += 4) {
+                ctx.beginPath();
+                let started = false;
+                for (let alt = 0; alt <= maxAlt; alt += 250) {
+                    let tempOffset = startT + (alt / 1100); 
+                    let x = getX(tempOffset, alt);
+                    let y = getY(alt);
+
+                    if (x >= paddingLeft && x <= paddingLeft + graphWidth) {
+                        if (!started) {
+                            ctx.moveTo(x, y);
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+                ctx.stroke();
+            }
+            ctx.setLineDash([]); 
+        }
+
+        function drawUserCurve(points, color, width, label, isDash = false) {
+            if (points.length < 2) return;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            if(isDash) ctx.setLineDash([5, 3]);
+
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            let lastPt = points[points.length - 1];
+            ctx.fillStyle = color;
+            ctx.font = 'italic bold 11px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(label, lastPt.x + 10, lastPt.y - 5);
+        }
+
+        let isDrawing = false;
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (x >= paddingLeft && x <= paddingLeft + graphWidth && y >= paddingTop && y <= paddingTop + graphHeight) {
+                isDrawing = true;
+                addPoint(x, y);
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (x >= paddingLeft && x <= paddingLeft + graphWidth && y >= paddingTop && y <= paddingTop + graphHeight) {
+                addPoint(x, y);
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mouseleave', () => isDrawing = false);
+
+        function addPoint(x, y) {
+            let targetArray = state.drawMode === 'state' ? stateCurve : dewCurve;
+            let newPoint = { x: x, y: y, alt: getAltFromY(y) };
+            
+            targetArray = targetArray.filter(p => Math.abs(p.y - y) > 6);
+            targetArray.push(newPoint);
+            targetArray.sort((a, b) => b.y - a.y);
+
+            if (state.drawMode === 'state') stateCurve = targetArray;
+            else dewCurve = targetArray;
+
+            draw();
+        }
+
+        // ==========================================
+        // 2. MOTEUR D'ADMINISTRATION (EXPORT JSON)
+        // ==========================================
+        document.getElementById('btn-generate-json').addEventListener('click', function() {
+            if (stateCurve.length < 2) {
+                alert("Erreur : La courbe d'état doit contenir au moins 2 points pour créer un profil valide.");
+                return;
+            }
+
+            const nomProfil = prompt("Nom de ce profil météo (ex: Ciel de traîne estival, Inversion frontale) :");
+            if (!nomProfil) return;
+            
+            const description = prompt("Description pédagogique (optionnelle) :\nExemple : 'Situation type de stabilité bloquant les thermiques en basse couche.'");
+
+            // Formatage des tableaux : conversion des pixels en données météorologiques réelles (Altitude & Température)
+            const formatCurve = (curve) => {
+                return curve.map(pt => ({
+                    alt: Math.round(pt.alt),
+                    temp: parseFloat(getTempFromXY(pt.x, pt.y).toFixed(2)) // Arrondi propre
+                }));
+            };
+
+            const pointsEtat = formatCurve(stateCurve); 
+            const pointsRosee = formatCurve(dewCurve); 
+
+            // Construction de l'objet de données
+            const nouveauProfil = {
+                id: Date.now(),
+                nom: nomProfil,
+                description: description || "",
+                courbe_etat: pointsEtat,
+                point_rosee: pointsRosee
+            };
+
+            // Affichage dans le Textarea pour copie
+            const outputArea = document.getElementById('json-output');
+            
+            // Formatage lisible avec 4 espaces, ajout d'une virgule à la fin pour le coller facilement dans un tableau JSON
+            outputArea.value = JSON.stringify(nouveauProfil, null, 4) + ","; 
+            outputArea.style.display = 'block';
+            
+            outputArea.select();
+            alert("✅ JSON généré avec succès !\n\nCopie le contenu de la zone de texte apparue et colle-le dans ton fichier profils_meteo.json entre les crochets [ ].");
+        });
+
+        // Démarrage initial : vide par défaut
+        draw();
+    </script>
+</body>
+</html>
