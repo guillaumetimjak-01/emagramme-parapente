@@ -136,7 +136,7 @@
       {
       "id": 1785676883582,
       "nom": "Module 5 - Atelier N°4",
-      "description": "",
+      "description": "Altitude décollage : 690m - Déterminez les éléments suivants : Nuages pré-existans, base des nuages convectifs, épaisseur de la couche convective, plafond de vol, risque orageux",
       "courbe_etat": [
         { "alt": 111, "temp": 24.48 },
         { "alt": 248, "temp": 23.75 },
