@@ -130,13 +130,14 @@
                 </div>
             </details>
 
-            <details>
+            <details open>
                 <summary class="section-title" style="cursor: pointer; outline: none;">1. Structure du Graphique</summary>
                 <div class="btn-group">
-                    <button class="toggle-btn" id="btn-axes" onclick="toggleElement('axes')">
+                    <!-- Les boutons sont marqués 'active' par défaut -->
+                    <button class="toggle-btn active" id="btn-axes" onclick="toggleElement('axes')">
                         <span class="indicator"></span> Axes & Cadre (0-5000m / -10 à +40°C)
                     </button>
-                    <button class="toggle-btn" id="btn-grid" onclick="toggleElement('grid')">
+                    <button class="toggle-btn active" id="btn-grid" onclick="toggleElement('grid')">
                         <span class="indicator"></span> Grille de légende
                     </button>
                 </div>
@@ -215,7 +216,7 @@
 
     <script>
         // ==========================================
-        // 1. MOTEUR GRAPHIQUE (IDENTIQUE V3.8)
+        // 1. MOTEUR GRAPHIQUE
         // ==========================================
         const canvas = document.getElementById('emagramCanvas');
         const ctx = canvas.getContext('2d');
@@ -240,9 +241,10 @@
             return Math.round(1013.25 * Math.pow((1 - 0.0000225577 * alt), 5.2559));
         }
 
+        // INITIALISATION : axes et grid sont à 'true' par défaut
         let state = {
-            axes: false,
-            grid: false,
+            axes: true,
+            grid: true,
             dry: false,
             wet: false,
             mixing: false,
@@ -1113,7 +1115,7 @@
             alert("✅ JSON généré avec succès !\n\nCopie le contenu de la zone de texte apparue et colle-le dans ton fichier profils_meteo.json.");
         });
 
-        // Démarrage initial : vide par défaut
+        // Démarrage initial
         draw();
     </script>
 </body>
