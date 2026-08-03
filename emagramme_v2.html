@@ -168,6 +168,7 @@
                     </select>
                     <div id="profil-desc" style="color: #084298; font-size: 0.85rem; display: none; background: #cfe2ff; padding: 8px; border-radius: 6px; font-style: italic;">
                     </div>
+                    <button class="clear-btn" onclick="clearCurves()" style="margin-top: 5px;">Effacer et repartir de zéro</button>
                 </div>
             </details>
 
@@ -204,7 +205,7 @@
                     <button class="radio-btn" id="mode-dew" onclick="setDrawMode('dew')">Point de Rosée (Continu)</button>
                 </div>
                 <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 5px;">
-                    <button class="clear-btn" onclick="clearCurves()">Effacer tous les tracés</button>
+                    <button class="clear-btn" onclick="clearCurves()">Effacer tous les tracés manuels</button>
                 </div>
             </details>
             
@@ -581,21 +582,37 @@
             let intersected = false;
             let intersectionAlt = 0;
             let intersectionTemp = 0;
+            let hasCumulus = false;
+
+            let tDewSol = null;
+            if (dewCurve.length >= 2) {
+                tDewSol = getTempAtAlt(dewCurve, baseAlt);
+            }
 
             for (let alt = baseAlt; alt <= maxAlt; alt += 10) {
                 let tempDrop = (alt - baseAlt) / 100; 
                 let thermicTemp = startTemp - tempDrop; 
                 let realTemp = getTempAtAlt(stateCurve, alt);
 
-                if (realTemp !== null) {
-                    if (thermicTemp <= realTemp) {
-                        intersected = true;
-                        intersectionAlt = alt;
-                        intersectionTemp = thermicTemp;
+                // Vérification si on croise la courbe d'état (Sommet thermique sec)
+                if (realTemp !== null && thermicTemp <= realTemp) {
+                    intersected = true;
+                    intersectionAlt = alt;
+                    intersectionTemp = thermicTemp;
+                    points.push({ x: getX(thermicTemp, alt), y: getY(alt) });
+                    break;
+                }
+
+                // Vérification si on atteint la saturation (Base du cumulus)
+                if (tDewSol !== null) {
+                    let mixingTemp = tDewSol + ((alt - baseAlt) / 1100);
+                    if (mixingTemp >= thermicTemp) {
+                        hasCumulus = true;
                         points.push({ x: getX(thermicTemp, alt), y: getY(alt) });
-                        break;
+                        break; // On arrête le tracé de la ligne verte à la base du nuage
                     }
                 }
+
                 points.push({ x: getX(thermicTemp, alt), y: getY(alt) });
             }
 
@@ -610,6 +627,7 @@
                 ctx.stroke();
 
                 if (intersected) {
+                    // S'il n'y a pas de cumulus, on affiche le sommet du thermique sec
                     let endX = getX(intersectionTemp, intersectionAlt);
                     let endY = getY(intersectionAlt);
 
@@ -622,7 +640,8 @@
                     ctx.font = 'bold 11px sans-serif';
                     ctx.textAlign = 'left';
                     ctx.fillText(` Sommet Ascendance : ${Math.round(intersectionAlt)} m (${intersectionTemp.toFixed(1)}°C)`, endX + 8, endY + 4);
-                } else if (stateCurve.length >= 2) {
+                } else if (stateCurve.length >= 2 && !hasCumulus) {
+                    // Si on ne trouve ni plafond sec ni cumulus, on indique juste la bulle
                     let lastPt = points[points.length - 1];
                     ctx.fillStyle = '#27ae60';
                     ctx.font = 'italic bold 11px sans-serif';
@@ -723,9 +742,10 @@
                 let pseudoStartT = lclTemp + (lclAlt / 100) * (0.55 + (lclAlt / 20000));
                 topPoints.push({ x: getX(lclTemp, lclAlt), y: getY(lclAlt) });
 
+                let currentTemp; // <- CORRECTION 1 : Déclaration en dehors de la boucle
                 for (let alt = lclAlt + 10; alt <= maxAlt; alt += 10) {
                     let lapseRate = 0.55 + (alt / 20000); 
-                    let currentTemp = pseudoStartT - (alt / 100) * lapseRate;
+                    currentTemp = pseudoStartT - (alt / 100) * lapseRate;
                     
                     let realTemp = getTempAtAlt(stateCurve, alt);
                     topPoints.push({ x: getX(currentTemp, alt), y: getY(alt) });
@@ -749,8 +769,12 @@
                     ctx.stroke();
                     ctx.setLineDash([]);
 
-                    let endX = getX(topIntersectionTemp || currentTemp, topIntersectionAlt || maxAlt);
-                    let endY = getY(topIntersectionAlt || maxAlt);
+                    // CORRECTION 1 : Gestion stricte des null et undefined
+                    let finalTemp = topIntersectionAlt !== null ? topIntersectionTemp : currentTemp;
+                    let finalAlt = topIntersectionAlt !== null ? topIntersectionAlt : maxAlt;
+                    
+                    let endX = getX(finalTemp, finalAlt);
+                    let endY = getY(finalAlt);
 
                     ctx.fillStyle = '#d32f2f';
                     ctx.beginPath();
