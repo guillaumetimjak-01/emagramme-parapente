@@ -9,7 +9,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="https://guillaumetimjak-01.github.io/emagramme-parapente/favicon.png">
-    <title>Simulateur Émagramme Pédagogique - Vol Libre - V4.1</title>
+    <title>Simulateur Émagramme Pédagogique - Vol Libre - V4.2</title>
     <style>
         :root {
             --bg-color: #f8f9fa;
@@ -152,7 +152,7 @@
 </head>
 <body>
 
-    <h1>Simulateur d'Émagramme Pédagogique - V4.1</h1>
+    <h1>Simulateur d'Émagramme Pédagogique - V4.2</h1>
     <div class="subtitle">Club Ecole FFVL - Entre Ciel et Terre</div>
 
     <div class="container">
@@ -406,7 +406,6 @@
             return null;
         }
 
-        // --- NOUVELLE FONCTION : Texte intelligent avec gestion des bords et anti-collision ---
         function drawSmartLabel(ctx, text, rawX, rawY, font, color, align = 'left') {
             ctx.font = font;
             let tWidth = ctx.measureText(text).width;
@@ -421,13 +420,11 @@
             let minY = paddingTop + 15; 
             let maxY = paddingTop + graphHeight - 5;
 
-            // Définition de la "boîte" occupée par le texte (origine en haut à gauche)
             let boxX = x;
             if (align === 'right') boxX = x - tWidth;
             else if (align === 'center') boxX = x - tWidth / 2;
             let boxY = y - tHeight + 3;
 
-            // Ajustement si le texte déborde à droite ou à gauche
             if (boxX + tWidth > maxX) {
                 boxX = maxX - tWidth;
                 if (align === 'left') x = boxX;
@@ -441,7 +438,6 @@
                 else if (align === 'right') x = boxX + tWidth;
             }
 
-            // Ajustement si le texte déborde en haut ou en bas
             if (boxY < minY) {
                 let offset = minY - boxY;
                 boxY += offset;
@@ -453,7 +449,6 @@
                 y -= offset;
             }
 
-            // Détection de collision avec les autres textes déjà tracés
             let collision = true;
             let attempts = 0;
             let moveDown = true;
@@ -467,7 +462,7 @@
                         boxY + tHeight + padding > rect.y) {
                         
                         collision = true;
-                        if (boxY + tHeight + 14 > maxY) moveDown = false; // Trop bas, on essaie en haut
+                        if (boxY + tHeight + 14 > maxY) moveDown = false;
                         
                         let shift = moveDown ? 14 : -14;
                         boxY += shift;
@@ -478,7 +473,6 @@
                 attempts++;
             }
 
-            // Enregistrement de la position finale pour les futurs textes
             drawnLabels.push({x: boxX, y: boxY, w: tWidth, h: tHeight});
 
             ctx.fillStyle = color;
@@ -671,11 +665,15 @@
                 tDewSol = getTempAtAlt(dewCurve, baseAlt);
             }
 
+            // Vérifier si l'utilisateur a demandé d'afficher les nuages convectifs
+            const showConvectiveBase = document.getElementById('show-convective').checked || document.getElementById('show-convective-top').checked;
+
             for (let alt = baseAlt; alt <= maxAlt; alt += 10) {
                 let tempDrop = (alt - baseAlt) / 100; 
                 let thermicTemp = startTemp - tempDrop; 
                 let realTemp = getTempAtAlt(stateCurve, alt);
 
+                // Vérification du croisement avec la courbe d'état (Sommet thermique sec)
                 if (realTemp !== null && thermicTemp <= realTemp) {
                     intersected = true;
                     intersectionAlt = alt;
@@ -684,12 +682,15 @@
                     break;
                 }
 
+                // Si on atteint la saturation, on arrête le tracé SEULEMENT SI la case nuage est cochée
                 if (tDewSol !== null) {
                     let mixingTemp = tDewSol + ((alt - baseAlt) / 1100);
                     if (mixingTemp >= thermicTemp) {
-                        hasCumulus = true;
-                        points.push({ x: getX(thermicTemp, alt), y: getY(alt) });
-                        break; 
+                        if (showConvectiveBase) {
+                            hasCumulus = true;
+                            points.push({ x: getX(thermicTemp, alt), y: getY(alt) });
+                            break; 
+                        }
                     }
                 }
 
@@ -886,7 +887,7 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             warningMessages = [];
-            drawnLabels = []; // Réinitialise les étiquettes dessinées à chaque frame
+            drawnLabels = []; 
 
             ctx.save();
             ctx.beginPath();
@@ -1143,7 +1144,6 @@
 
             let lastPt = points[points.length - 1];
             
-            // Utilisation du nouveau système
             drawSmartLabel(ctx, label, lastPt.x + 10, lastPt.y - 5, 'italic bold 11px sans-serif', color);
         }
 
