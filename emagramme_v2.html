@@ -9,7 +9,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="https://guillaumetimjak-01.github.io/emagramme-parapente/favicon.png">
-    <title>Simulateur Émagramme Pédagogique - Vol Libre - V4.1 (Scénarios JSON)</title>
+    <title>Simulateur Émagramme Pédagogique - Vol Libre - V4.1</title>
     <style>
         :root {
             --bg-color: #f8f9fa;
@@ -153,7 +153,7 @@
 <body>
 
     <h1>Simulateur d'Émagramme Pédagogique (Skew-T 45°) - V4.1</h1>
-    <div class="subtitle">Club Ecole FFVL - Entre Ciel et Terre</div>
+    <div class="subtitle">Entre Ciel et Terre - Module 4 et 5 - L'Emagramme</div>
 
     <div class="container">
         <!-- Panneau de commandes gauche -->
@@ -245,7 +245,6 @@
             </details>
         </div>
 
-        <!-- Zone Graphique Émagramme Élargie pour le Skew 45° -->
         <div class="graph-area">
             <canvas id="emagramCanvas" width="1000" height="600"></canvas>
         </div>
@@ -291,6 +290,9 @@
         let stateCurve = [];
         let dewCurve = [];
         let warningMessages = [];
+        
+        // Liste pour stocker les emplacements des textes et éviter la superposition
+        let drawnLabels = [];
 
         function getX(temp, alt) {
             let xBase = paddingLeft + ((temp - minTemp) / (maxTemp - minTemp)) * graphWidth;
@@ -402,6 +404,86 @@
                 }
             }
             return null;
+        }
+
+        // --- NOUVELLE FONCTION : Texte intelligent avec gestion des bords et anti-collision ---
+        function drawSmartLabel(ctx, text, rawX, rawY, font, color, align = 'left') {
+            ctx.font = font;
+            let tWidth = ctx.measureText(text).width;
+            let tHeight = 14; 
+            let padding = 4;
+
+            let x = rawX;
+            let y = rawY;
+
+            let minX = paddingLeft + 5;
+            let maxX = paddingLeft + graphWidth - 5;
+            let minY = paddingTop + 15; 
+            let maxY = paddingTop + graphHeight - 5;
+
+            // Définition de la "boîte" occupée par le texte (origine en haut à gauche)
+            let boxX = x;
+            if (align === 'right') boxX = x - tWidth;
+            else if (align === 'center') boxX = x - tWidth / 2;
+            let boxY = y - tHeight + 3;
+
+            // Ajustement si le texte déborde à droite ou à gauche
+            if (boxX + tWidth > maxX) {
+                boxX = maxX - tWidth;
+                if (align === 'left') x = boxX;
+                else if (align === 'center') x = boxX + tWidth/2;
+                else if (align === 'right') x = boxX + tWidth;
+            }
+            if (boxX < minX) {
+                boxX = minX;
+                if (align === 'left') x = boxX;
+                else if (align === 'center') x = boxX + tWidth/2;
+                else if (align === 'right') x = boxX + tWidth;
+            }
+
+            // Ajustement si le texte déborde en haut ou en bas
+            if (boxY < minY) {
+                let offset = minY - boxY;
+                boxY += offset;
+                y += offset;
+            }
+            if (boxY + tHeight > maxY) {
+                let offset = (boxY + tHeight) - maxY;
+                boxY -= offset;
+                y -= offset;
+            }
+
+            // Détection de collision avec les autres textes déjà tracés
+            let collision = true;
+            let attempts = 0;
+            let moveDown = true;
+
+            while (collision && attempts < 10) {
+                collision = false;
+                for (let rect of drawnLabels) {
+                    if (boxX < rect.x + rect.w + padding &&
+                        boxX + tWidth + padding > rect.x &&
+                        boxY < rect.y + rect.h + padding &&
+                        boxY + tHeight + padding > rect.y) {
+                        
+                        collision = true;
+                        if (boxY + tHeight + 14 > maxY) moveDown = false; // Trop bas, on essaie en haut
+                        
+                        let shift = moveDown ? 14 : -14;
+                        boxY += shift;
+                        y += shift;
+                        break;
+                    }
+                }
+                attempts++;
+            }
+
+            // Enregistrement de la position finale pour les futurs textes
+            drawnLabels.push({x: boxX, y: boxY, w: tWidth, h: tHeight});
+
+            ctx.fillStyle = color;
+            ctx.textAlign = align;
+            ctx.fillText(text, x, y);
         }
 
         function drawGroundLevel() {
@@ -594,7 +676,6 @@
                 let thermicTemp = startTemp - tempDrop; 
                 let realTemp = getTempAtAlt(stateCurve, alt);
 
-                // Vérification si on croise la courbe d'état (Sommet thermique sec)
                 if (realTemp !== null && thermicTemp <= realTemp) {
                     intersected = true;
                     intersectionAlt = alt;
@@ -603,13 +684,12 @@
                     break;
                 }
 
-                // Vérification si on atteint la saturation (Base du cumulus)
                 if (tDewSol !== null) {
                     let mixingTemp = tDewSol + ((alt - baseAlt) / 1100);
                     if (mixingTemp >= thermicTemp) {
                         hasCumulus = true;
                         points.push({ x: getX(thermicTemp, alt), y: getY(alt) });
-                        break; // On arrête le tracé de la ligne verte à la base du nuage
+                        break; 
                     }
                 }
 
@@ -627,7 +707,6 @@
                 ctx.stroke();
 
                 if (intersected) {
-                    // S'il n'y a pas de cumulus, on affiche le sommet du thermique sec
                     let endX = getX(intersectionTemp, intersectionAlt);
                     let endY = getY(intersectionAlt);
 
@@ -636,17 +715,10 @@
                     ctx.arc(endX, endY, 6, 0, 2 * Math.PI);
                     ctx.fill();
 
-                    ctx.fillStyle = '#27ae60';
-                    ctx.font = 'bold 11px sans-serif';
-                    ctx.textAlign = 'left';
-                    ctx.fillText(` Sommet Ascendance : ${Math.round(intersectionAlt)} m (${intersectionTemp.toFixed(1)}°C)`, endX + 8, endY + 4);
+                    drawSmartLabel(ctx, `Sommet Ascendance : ${Math.round(intersectionAlt)} m (${intersectionTemp.toFixed(1)}°C)`, endX + 8, endY + 4, 'bold 11px sans-serif', '#27ae60');
                 } else if (stateCurve.length >= 2 && !hasCumulus) {
-                    // Si on ne trouve ni plafond sec ni cumulus, on indique juste la bulle
                     let lastPt = points[points.length - 1];
-                    ctx.fillStyle = '#27ae60';
-                    ctx.font = 'italic bold 11px sans-serif';
-                    ctx.textAlign = 'left';
-                    ctx.fillText(` Bulle Thermique`, lastPt.x + 8, lastPt.y + 4);
+                    drawSmartLabel(ctx, `Bulle Thermique`, lastPt.x + 8, lastPt.y + 4, 'italic bold 11px sans-serif', '#27ae60');
                 }
             }
         }
@@ -728,10 +800,7 @@
                 ctx.arc(endX, endY, 5, 0, 2 * Math.PI);
                 ctx.fill();
 
-                ctx.fillStyle = '#2c3e50';
-                ctx.font = 'bold 11px sans-serif';
-                ctx.textAlign = 'left'; 
-                ctx.fillText(` Base Cumulus : ${Math.round(lclAlt)} m`, endX + 10, endY + 4); 
+                drawSmartLabel(ctx, `Base Cumulus : ${Math.round(lclAlt)} m`, endX + 10, endY + 4, 'bold 11px sans-serif', '#2c3e50');
             }
 
             if (showConvectiveTop) {
@@ -742,7 +811,7 @@
                 let pseudoStartT = lclTemp + (lclAlt / 100) * (0.55 + (lclAlt / 20000));
                 topPoints.push({ x: getX(lclTemp, lclAlt), y: getY(lclAlt) });
 
-                let currentTemp; // <- CORRECTION 1 : Déclaration en dehors de la boucle
+                let currentTemp;
                 for (let alt = lclAlt + 10; alt <= maxAlt; alt += 10) {
                     let lapseRate = 0.55 + (alt / 20000); 
                     currentTemp = pseudoStartT - (alt / 100) * lapseRate;
@@ -769,7 +838,6 @@
                     ctx.stroke();
                     ctx.setLineDash([]);
 
-                    // CORRECTION 1 : Gestion stricte des null et undefined
                     let finalTemp = topIntersectionAlt !== null ? topIntersectionTemp : currentTemp;
                     let finalAlt = topIntersectionAlt !== null ? topIntersectionAlt : maxAlt;
                     
@@ -781,14 +849,8 @@
                     ctx.arc(endX, endY, 6, 0, 2 * Math.PI);
                     ctx.fill();
 
-                    ctx.fillStyle = '#27ae60';
-                    ctx.font = 'bold 11px sans-serif';
-                    ctx.textAlign = 'left';
-                    if (topIntersectionAlt !== null) {
-                        ctx.fillText(` Sommet Cumulus : ${Math.round(topIntersectionAlt)} m`, endX + 10, endY + 4);
-                    } else {
-                        ctx.fillText(` Sommet > ${maxAlt} m`, endX + 10, endY + 4);
-                    }
+                    let textLabel = topIntersectionAlt !== null ? `Sommet Cumulus : ${Math.round(topIntersectionAlt)} m` : `Sommet > ${maxAlt} m`;
+                    drawSmartLabel(ctx, textLabel, endX + 10, endY + 4, 'bold 11px sans-serif', '#27ae60');
                     
                     let yBase = getY(lclAlt);
                     let finalTopAlt = topIntersectionAlt !== null ? topIntersectionAlt : maxAlt;
@@ -824,6 +886,7 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             warningMessages = [];
+            drawnLabels = []; // Réinitialise les étiquettes dessinées à chaque frame
 
             ctx.save();
             ctx.beginPath();
@@ -1079,10 +1142,9 @@
             ctx.setLineDash([]);
 
             let lastPt = points[points.length - 1];
-            ctx.fillStyle = color;
-            ctx.font = 'italic bold 11px sans-serif';
-            ctx.textAlign = 'left';
-            ctx.fillText(label, lastPt.x + 10, lastPt.y - 5);
+            
+            // Utilisation du nouveau système
+            drawSmartLabel(ctx, label, lastPt.x + 10, lastPt.y - 5, 'italic bold 11px sans-serif', color);
         }
 
         let isDrawing = false;
@@ -1155,15 +1217,12 @@
         }
 
         function chargerCourbesDepuisProfil(profil) {
-            // Nettoyage des tracés
             stateCurve = [];
             dewCurve = [];
             
-            // Vidage explicite des champs du sol et de la température pour garder la bulle vide
             document.getElementById('alt-sol').value = "";
             document.getElementById('temp-sol').value = "";
 
-            // Nettoyage des options d'affichage
             document.getElementById('show-clouds').checked = false;
             document.getElementById('cloud-checkbox-container').classList.remove('active');
             document.getElementById('show-convective').checked = false;
